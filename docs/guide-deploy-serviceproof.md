@@ -439,6 +439,33 @@ Ce qu'il fait, et pourquoi :
 
 Les trois images de production sont dans `infra/docker/*.prod.Dockerfile`. Les originales (`laravel.Dockerfile`, `agent.Dockerfile`, `web.Dockerfile`) restent pour `docker-compose.yml` en développement.
 
+### La version de PHP doit correspondre à votre `composer.lock`
+
+L'image API est construite sur **PHP 8.4** par défaut, parce que c'est la version sur laquelle le `composer.lock` du dépôt a été résolu. Ce n'est pas un détail cosmétique : Composer écrit un `platform_check.php` à partir du lock, et il **échoue au build** si la plateforme diverge.
+
+```
+In platform_check.php line 22:
+  Your Composer dependencies require a PHP version ">= 8.4.1". You are running 8.3.33.
+```
+
+Pour construire sur une autre version :
+
+```bash
+# ponctuel
+docker compose -f infra/production/docker-compose.prod.yml build --build-arg PHP_VERSION=8.3 api
+
+# ou durablement, dans infra/production/.env
+PHP_VERSION=8.3
+```
+
+Vérifier quelle version votre lock exige :
+
+```bash
+grep -o '"php": "[^"]*"' apps/api/composer.lock | sort -u | head
+```
+
+> **Gardez `composer.lock` versionné.** Sans lui, chaque build résout les dépendances à nouveau et deux déploiements successifs peuvent embarquer des versions différentes. C'est aussi ce fichier qui rend l'erreur ci-dessus déterministe plutôt qu'aléatoire.
+
 ---
 
 # 11. Configuration Next.js (standalone)
@@ -751,6 +778,20 @@ Proxy orange activé pour CDN, DDoS et masquage IP. Mode SSL : **Full (strict)**
 ---
 
 # 21. Dépannage
+
+### Le build de l'image API échoue sur `platform_check.php`
+
+```
+Your Composer dependencies require a PHP version ">= 8.4.1". You are running 8.3.x
+```
+
+La version de PHP de l'image ne correspond pas à celle qui a résolu `composer.lock`. Construire avec la bonne :
+
+```bash
+PHP_VERSION=8.4 docker compose -f infra/production/docker-compose.prod.yml build api
+```
+
+Les étapes `vendor` et `runtime` partagent la même image de base, donc corriger `PHP_VERSION` corrige les deux d'un coup — il n'y a pas de second endroit à changer.
 
 ### Le conteneur API refuse de démarrer
 

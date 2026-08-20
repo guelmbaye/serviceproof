@@ -66,6 +66,9 @@ services:
     build:
       context: ../..
       dockerfile: infra/docker/laravel.prod.Dockerfile
+      args:
+        # Must match the PHP that composer.lock was resolved against.
+        PHP_VERSION: ${PHP_VERSION:-8.4}
     container_name: serviceproof-api
     restart: unless-stopped
     depends_on:
