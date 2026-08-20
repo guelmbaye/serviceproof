@@ -1,0 +1,35 @@
+name: serviceproof_field
+description: ServiceProof AI — the field technician's app. Submit a completion claim; the network answers for you.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"  # Flutter 3.27 or newer
+
+# Deliberately three dependencies.
+#
+# No state-management package: ChangeNotifier + ListenableBuilder ship with
+# Flutter and are enough for four screens. No JSON codegen: hand-written
+# parsers mean no build_runner step to fail on a hackathon laptop. No
+# geolocation package, for a product reason explained in the README — this
+# app never sends its own GPS.
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.2
+  shared_preferences: ^2.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+
+# The launcher icon is not generated here: android/ and ios/ are created per
+# machine by `flutter create`, so there is nothing committed to write it into.
+# After `make mobile-setup`, point flutter_launcher_icons at assets/icon.png.

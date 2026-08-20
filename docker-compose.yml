@@ -1,0 +1,144 @@
+# ServiceProof AI - Hackathon / MVP stack
+# Laravel owns the product. FastAPI owns the agent.
+# CAMARA provides the network evidence. PostgreSQL owns the truth.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sp_postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-serviceproof}
+      POSTGRES_USER: ${DB_USERNAME:-serviceproof}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-serviceproof}
+    ports:
+      - "${DB_PORT_EXPOSED:-5432}:5432"
+    volumes:
+      - sp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-serviceproof} -d ${DB_DATABASE:-serviceproof}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: sp_redis
+    command: ["redis-server", "--appendonly", "no"]
+    ports:
+      - "${REDIS_PORT_EXPOSED:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: ../../infra/docker/laravel.Dockerfile
+    container_name: sp_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-serviceproof}
+      DB_USERNAME: ${DB_USERNAME:-serviceproof}
+      DB_PASSWORD: ${DB_PASSWORD:-serviceproof}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      AGENT_BASE_URL: http://agent:9000
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:-dev-internal-token}
+      AGENT_TIMEOUT: ${AGENT_TIMEOUT:-45}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      SANCTUM_TOKEN_EXPIRATION: ${SANCTUM_TOKEN_EXPIRATION:-720}
+      SP_SUPER_ADMIN_PASSWORD: ${SP_SUPER_ADMIN_PASSWORD:-password}
+      SP_DEMO_SITE_A_LAT: ${SP_DEMO_SITE_A_LAT:-}
+      SP_DEMO_SITE_A_LNG: ${SP_DEMO_SITE_A_LNG:-}
+      SP_DEMO_SITE_B_LAT: ${SP_DEMO_SITE_B_LAT:-}
+      SP_DEMO_SITE_B_LNG: ${SP_DEMO_SITE_B_LNG:-}
+      SP_DEMO_SITE_C_LAT: ${SP_DEMO_SITE_C_LAT:-}
+      SP_DEMO_SITE_C_LNG: ${SP_DEMO_SITE_C_LNG:-}
+    volumes:
+      - ./apps/api:/var/www/html
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: ["/usr/local/bin/entrypoint.sh"]
+
+  agent:
+    build:
+      context: ./apps/agent
+      dockerfile: ../../infra/docker/agent.Dockerfile
+    container_name: sp_agent
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      SP_ENV: ${APP_ENV:-local}
+      AGENT_INTERNAL_TOKEN: ${AGENT_INTERNAL_TOKEN:-dev-internal-token}
+      REDIS_URL: redis://redis:6379/1
+      # --- LLM provider (see .env.example) ---
+      LLM_PROVIDER: ${LLM_PROVIDER:-heuristic}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      # --- Nokia Network as Code / CAMARA ---
+      CAMARA_MODE: ${CAMARA_MODE:-auto}
+      NAC_BASE_URL: ${NAC_BASE_URL:-https://network-as-code.p-eu.rapidapi.com}
+      NAC_RAPIDAPI_KEY: ${NAC_RAPIDAPI_KEY:-}
+      NAC_RAPIDAPI_HOST: ${NAC_RAPIDAPI_HOST:-network-as-code.nokia.rapidapi.com}
+      NAC_TIMEOUT: ${NAC_TIMEOUT:-8}
+      NAC_MAX_RETRIES: ${NAC_MAX_RETRIES:-1}
+      # Capability paths, overridable without a rebuild. The blanks fall back
+      # to the confirmed defaults in apps/agent/app/config.py.
+      NAC_PATH_LOCATION_VERIFICATION: ${NAC_PATH_LOCATION_VERIFICATION:-}
+      NAC_PATH_LOCATION_RETRIEVAL: ${NAC_PATH_LOCATION_RETRIEVAL:-}
+      NAC_PATH_DEVICE_STATUS: ${NAC_PATH_DEVICE_STATUS:-}
+      NAC_PATH_DEVICE_ROAMING: ${NAC_PATH_DEVICE_ROAMING:-}
+      NAC_PATH_DEVICE_REACHABILITY: ${NAC_PATH_DEVICE_REACHABILITY:-}
+      DEFAULT_MAX_AGE_SECONDS: ${DEFAULT_MAX_AGE_SECONDS:-900}
+      CONTEMPORANEITY_WINDOW_SECONDS: ${CONTEMPORANEITY_WINDOW_SECONDS:-1800}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-20}
+    volumes:
+      - ./apps/agent:/app
+    ports:
+      - "${AGENT_PORT:-9000}:9000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9000", "--reload"]
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: ../../infra/docker/web.Dockerfile
+    container_name: sp_web
+    depends_on:
+      - api
+    environment:
+      # Server-side only. The browser never holds a bearer token and never
+      # calls Laravel directly — the console proxies every request.
+      API_BASE_URL: http://api:8000/api/v1
+      SESSION_COOKIE_NAME: sp_session
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./apps/web:/app
+      - sp_web_modules:/app/node_modules
+      - sp_web_next:/app/.next
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  sp_pgdata:
+  sp_web_modules:
+  sp_web_next:

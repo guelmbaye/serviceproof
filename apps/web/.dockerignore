@@ -1,0 +1,20 @@
+# See apps/api/.dockerignore — same reasoning.
+#
+# node_modules is the important one here: the image runs `npm install` for
+# linux, and copying a host tree built on another platform over the top
+# would silently break native bindings.
+
+.env
+.env.*
+!.env.example
+
+node_modules/
+.next/
+out/
+next-env.d.ts
+
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,51 @@
+# ── secrets ───────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── PHP / Laravel ─────────────────────────────────────────────────────
+# Laravel keeps its own .gitignore inside each storage directory, which is
+# what makes the empty runtime dirs survive a clone. Do not re-exclude them
+# from here: a rule like storage/framework/cache/data/* would swallow the
+# keeper and the directory would vanish, and Laravel refuses to boot without it.
+apps/api/vendor/
+apps/api/storage/*.key
+apps/api/database/*.sqlite
+apps/api/.phpunit.result.cache
+
+# ── Python / FastAPI ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+apps/agent/.venv/
+apps/agent/.pytest_cache/
+
+# ── Node / Next.js ────────────────────────────────────────────────────
+node_modules/
+.next/
+next-env.d.ts
+.vercel/
+
+# ── Flutter ───────────────────────────────────────────────────────────
+# Platform folders are generated per machine: `flutter create --platforms=android,ios .`
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/linux/
+apps/mobile/macos/
+apps/mobile/windows/
+apps/mobile/web/
+apps/mobile/build/
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/pubspec.lock
+
+# ── tooling ───────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+
+# ── Production runtime (créé sur le serveur, jamais commité) ──────────
+infra/production/.env
+infra/production/data/

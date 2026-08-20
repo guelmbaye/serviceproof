@@ -1,0 +1,144 @@
+# ServiceProof — production topology.
+#
+# Adapted from the repository's docker-compose.yml, with four differences that
+# matter on a server:
+#
+#   1. No port is published on the host. The shared reverse proxy reaches the
+#      three web-facing containers over proxy-network; PostgreSQL and Redis are
+#      not reachable from outside serviceproof-network at all.
+#   2. No source bind-mounts. The image is the artefact; a deploy is a rebuild.
+#   3. Production Dockerfiles, not the development ones.
+#   4. Secrets come from .env, never from defaults baked into the file.
+#
+# Run from the repository root:
+#   docker compose -f infra/production/docker-compose.prod.yml up -d --build
+
+name: serviceproof
+
+services:
+
+  # ─── PostgreSQL — the system of record ────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: serviceproof-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # Evidence and audit rows are append-only; UTC keeps their timestamps
+      # comparable with what the operator reports.
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - serviceproof-network
+
+  # ─── Redis — cache and rate limiting ──────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: serviceproof-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - serviceproof-network
+
+  # ─── Laravel — product core ───────────────────────────────────────
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/laravel.prod.Dockerfile
+    container_name: serviceproof-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://api.serviceproof.vylantic.com
+      FRONTEND_URL: https://serviceproof.vylantic.com
+
+      DB_CONNECTION: pgsql
+      DB_HOST: serviceproof-postgres
+      DB_PORT: "5432"
+
+      REDIS_HOST: serviceproof-redis
+      REDIS_PORT: "6379"
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+
+      # The agent is reached over the private network. It is never called
+      # through its public hostname, which would leave the droplet, traverse
+      # TLS and come back for no benefit.
+      AGENT_BASE_URL: http://serviceproof-agent:9000
+    volumes:
+      # Only Laravel's own writable paths persist. Everything else lives in
+      # the image.
+      - ./data/api-storage:/var/www/html/storage/app
+      - ./data/api-logs:/var/www/html/storage/logs
+    networks:
+      - serviceproof-network
+      - proxy-network
+
+  # ─── FastAPI — agent runtime ──────────────────────────────────────
+  agent:
+    build:
+      context: ../../apps/agent
+      dockerfile: ../../infra/docker/agent.prod.Dockerfile
+    container_name: serviceproof-agent
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SP_ENV: production
+      UVICORN_WORKERS: "2"
+    # Stateless by design: no volume, and a restart loses nothing.
+    networks:
+      - serviceproof-network
+      - proxy-network
+
+  # ─── Next.js — operations console ─────────────────────────────────
+  web:
+    build:
+      context: ../../apps/web
+      dockerfile: ../../infra/docker/web.prod.Dockerfile
+    container_name: serviceproof-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      # Server-side only. The browser never holds a token and never talks to
+      # Laravel, so this stays on the private network.
+      API_BASE_URL: http://serviceproof-api:8000/api/v1
+      SESSION_COOKIE_NAME: sp_session
+    networks:
+      - serviceproof-network
+      - proxy-network
+
+networks:
+  serviceproof-network:
+    external: true
+  proxy-network:
+    external: true

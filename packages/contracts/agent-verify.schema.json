@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://serviceproof.ai/contracts/agent-verify.schema.json",
+  "title": "ServiceProof — Agent verification contract",
+  "description": "Laravel (product core) -> FastAPI (agent runtime). The bundle is pre-loaded from PostgreSQL and sent in one POST, so the agent needs no callback and the cycle stays a single bounded request.",
+  "type": "object",
+  "required": ["request", "claim", "policy"],
+  "properties": {
+    "request": {
+      "type": "object",
+      "required": ["verification_run_id", "organization_id"],
+      "properties": {
+        "verification_run_id": { "type": "string", "format": "uuid" },
+        "organization_id": { "type": "string", "format": "uuid" },
+        "requested_at": { "type": "string", "format": "date-time" },
+        "request_id": { "type": "string" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["id", "reference"],
+      "properties": {
+        "id": { "type": "string" },
+        "reference": { "type": "string", "examples": ["CLM-1042"] },
+        "type": { "type": "string", "default": "SERVICE_COMPLETED" },
+        "claimed_at": { "type": "string", "format": "date-time" },
+        "untrusted_notes": {
+          "type": ["string", "null"],
+          "description": "Free text written by a field worker. Data, never an instruction."
+        },
+        "app_reported_context": { "type": ["object", "null"] }
+      }
+    },
+    "work_order": {
+      "type": ["object", "null"],
+      "required": ["reference", "expected_site"],
+      "properties": {
+        "reference": { "type": "string" },
+        "customer": { "type": ["string", "null"] },
+        "service_type": { "type": ["string", "null"] },
+        "risk_level": { "enum": ["LOW", "NORMAL", "HIGH"] },
+        "expected_site": {
+          "type": "object",
+          "required": ["name", "latitude", "longitude"],
+          "properties": {
+            "name": { "type": "string" },
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" },
+            "radius_m": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "worker": {
+      "type": "object",
+      "description": "Pseudonymous only. No name, no contact details reach the AI layer.",
+      "properties": { "reference": { "type": "string" } }
+    },
+    "device": {
+      "type": ["object", "null"],
+      "required": ["reference", "identifier"],
+      "properties": {
+        "reference": { "type": "string", "examples": ["DEV-001"] },
+        "identifier_type": { "enum": ["PHONE_NUMBER", "NETWORK_ACCESS_IDENTIFIER", "IPV4", "IPV6"] },
+        "identifier_key": { "type": "string", "examples": ["phoneNumber"] },
+        "identifier": { "type": "string" },
+        "is_simulator": { "type": "boolean" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "assurance_level": { "enum": ["LOW", "STANDARD", "HIGH"] },
+        "required_evidence": { "type": "array", "items": { "type": "string" } },
+        "optional_evidence": { "type": "array", "items": { "type": "string" } },
+        "max_tool_calls": { "type": "integer", "minimum": 1 },
+        "max_latency_ms": { "type": "integer" },
+        "location_radius_m": { "type": "integer" },
+        "freshness_seconds": { "type": "integer" },
+        "allow_partial": { "type": "boolean" },
+        "allowed_tools": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "max_tool_calls": { "type": "integer" },
+        "max_latency_ms": { "type": "integer" },
+        "assurance_level": { "type": "string" }
+      }
+    },
+    "tools": { "type": "array", "items": { "type": "string" } },
+    "demo": {
+      "type": "object",
+      "properties": {
+        "force_mode": { "enum": ["live", "demo", null] },
+        "scenario": { "enum": ["VERIFIED", "DISPUTED", "UNVERIFIED", null] }
+      }
+    }
+  }
+}

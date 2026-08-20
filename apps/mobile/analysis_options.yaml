@@ -1,0 +1,13 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    avoid_print: true
+    require_trailing_commas: true
+    unawaited_futures: true
+
+analyzer:
+  errors:
+    invalid_annotation_target: ignore

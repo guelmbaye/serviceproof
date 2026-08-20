@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://serviceproof.ai/contracts/agent-response.schema.json",
+  "title": "ServiceProof — Agent response contract",
+  "description": "FastAPI -> Laravel. A proposal, not a verdict: Laravel's DecisionGuard re-derives the final state from the persisted evidence.",
+  "type": "object",
+  "required": ["status", "agent_version", "planner"],
+  "properties": {
+    "status": { "enum": ["COMPLETED", "FAILED"] },
+    "agent_version": { "type": "string" },
+    "planner": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": ["llm", "heuristic", "llm_fallback_heuristic"],
+          "description": "llm_fallback_heuristic means the model was consulted but its answer was rejected or unavailable, and the deterministic planner took over."
+        },
+        "provider": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] }
+      }
+    },
+    "evidence_plan": {
+      "type": ["object", "null"],
+      "properties": {
+        "minimum": { "type": "array", "items": { "type": "string" } },
+        "escalation": { "type": "array", "items": { "type": "string" } },
+        "rationale": { "type": ["string", "null"] }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidence_id", "type", "status", "source", "received_at"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "type": { "enum": ["LOCATION_VERIFICATION", "DEVICE_STATUS", "DEVICE_REACHABILITY", "DEVICE_ROAMING_STATUS", "LOCATION_RETRIEVAL"] },
+          "status": {
+            "enum": ["SUPPORTED", "CONFLICTING", "UNAVAILABLE", "STALE", "INVALID"],
+            "description": "UNAVAILABLE is never CONFLICTING. A failed call is an absence of evidence."
+          },
+          "source": { "enum": ["CAMARA", "DEMO_FALLBACK"] },
+          "provider": { "type": ["string", "null"] },
+          "api": { "type": ["string", "null"] },
+          "request_id": { "type": ["string", "null"], "description": "Required for any usable item: no provenance, no evidence." },
+          "observed_at": { "type": ["string", "null"], "format": "date-time" },
+          "received_at": { "type": "string", "format": "date-time" },
+          "freshness": { "enum": ["CURRENT", "STALE", "UNKNOWN"] },
+          "age_seconds": { "type": ["integer", "null"] },
+          "latency_ms": { "type": ["integer", "null"] },
+          "reliability": { "type": ["number", "null"] },
+          "summary": { "type": ["string", "null"] },
+          "normalized": { "type": "object" },
+          "payload_hash": { "type": ["string", "null"] },
+          "failure_reason": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "trace": {
+      "type": "array",
+      "description": "Observable action trace. Never model chain-of-thought.",
+      "items": {
+        "type": "object",
+        "required": ["sequence", "event_type", "label", "occurred_at"],
+        "properties": {
+          "sequence": { "type": "integer" },
+          "event_type": {
+            "enum": ["AGENT_STARTED", "CONTEXT_LOADED", "PLAN_CREATED", "TOOL_SELECTED", "TOOL_CALLED", "EVIDENCE_RECEIVED", "EVIDENCE_CONFLICT", "EVIDENCE_UNAVAILABLE", "ESCALATION_REQUIRED", "BUDGET_EXHAUSTED", "POLICY_EVALUATED", "DECISION_PROPOSED", "GUARD_APPLIED", "AGENT_COMPLETED", "AGENT_FAILED"]
+          },
+          "label": { "type": "string" },
+          "detail": { "type": ["object", "null"] },
+          "occurred_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "assessment": {
+      "type": ["object", "null"],
+      "properties": {
+        "sufficient": { "type": "boolean" },
+        "supported": { "type": "integer" },
+        "conflicting": { "type": "integer" },
+        "unavailable": { "type": "integer" },
+        "stale": { "type": "integer" },
+        "missing_required": { "type": "array", "items": { "type": "string" } },
+        "assurance_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "breakdown": { "type": "object" }
+      }
+    },
+    "decision": {
+      "type": ["object", "null"],
+      "properties": {
+        "state": { "enum": ["VERIFIED", "PARTIAL", "DISPUTED", "UNVERIFIED"] },
+        "recommended_action": { "enum": ["CLOSE", "REVIEW", "ESCALATE", "MANUAL_VERIFICATION"] },
+        "policy_satisfied": { "type": "boolean" },
+        "rationale": { "type": ["string", "null"] }
+      }
+    },
+    "tool_calls_used": { "type": "integer" },
+    "duration_ms": { "type": "integer" },
+    "escalated": { "type": "boolean" },
+    "used_demo_fallback": { "type": "boolean" },
+    "failure_reason": { "type": ["string", "null"] }
+  }
+}

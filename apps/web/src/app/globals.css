@@ -1,0 +1,507 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════════════════
+   ServiceProof — operations console
+
+   Direction: a daylight instrument panel, not a SaaS dashboard. Cool
+   technical paper, measurement ink, and machine facts set in machine type.
+   Provenance is the product, so provenance gets the monospace.
+
+   The four decision states are informational, not emotional. UNVERIFIED is
+   grey on purpose: an absence of evidence is not an accusation, and the
+   interface must not colour it like one.
+   ══════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-paper: #edf0f3;
+  --color-panel: #ffffff;
+
+  /* Ink sampled from the wordmark: a navy, not a neutral black. */
+  --color-ink: #0a1330;
+  --color-ink-2: #59646f;
+  --color-ink-3: #8a94a0;
+  --color-rule: #d6dce3;
+  --color-rule-soft: #e6eaee;
+
+  /* The brand blue, sampled from the mark. Used for fills and rules, where
+     3:1 is the bar and white-on-blue clears 5.1:1. */
+  --color-signal: #0060fc;
+  /* Deepened for small text: the brand blue sits at exactly 4.50:1 on paper,
+     which is the AA threshold rather than a comfortable margin. */
+  --color-signal-ink: #0050d8;
+  --color-signal-wash: #e8f0ff;
+
+  --color-verified: #0e6e5c;
+  --color-partial: #a26400;
+  --color-disputed: #a3123f;
+  --color-unverified: #6b7785;
+
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+}
+
+/* ── base ─────────────────────────────────────────────────────────── */
+
+html {
+  background: var(--color-paper);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--color-signal);
+  color: #fff;
+}
+
+/* ── type roles ───────────────────────────────────────────────────── */
+
+.u-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+.u-ref {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Machine facts: ids, timestamps, coordinates, latency, hashes. */
+.u-machine {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-2);
+  word-break: break-all;
+}
+
+.u-figure {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ── surfaces ─────────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-rule);
+  border-radius: 3px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-rule-soft);
+}
+
+.row-link {
+  display: block;
+  border-bottom: 1px solid var(--color-rule-soft);
+  padding: 12px 16px;
+  transition: background 120ms ease;
+}
+
+.row-link:last-child {
+  border-bottom: 0;
+}
+
+.row-link:hover {
+  background: var(--color-signal-wash);
+}
+
+/* ── state colouring ──────────────────────────────────────────────── */
+
+[data-state="VERIFIED"] {
+  --state: var(--color-verified);
+}
+[data-state="PARTIAL"] {
+  --state: var(--color-partial);
+}
+[data-state="DISPUTED"] {
+  --state: var(--color-disputed);
+}
+[data-state="UNVERIFIED"] {
+  --state: var(--color-unverified);
+}
+[data-state="SUPPORTED"] {
+  --state: var(--color-verified);
+}
+[data-state="CONFLICTING"] {
+  --state: var(--color-disputed);
+}
+[data-state="STALE"] {
+  --state: var(--color-partial);
+}
+[data-state="UNAVAILABLE"],
+[data-state="INVALID"] {
+  --state: var(--color-unverified);
+}
+
+.state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--state, var(--color-ink-3)) 32%, transparent);
+  background: color-mix(in srgb, var(--state, var(--color-ink-3)) 7%, #fff);
+  color: var(--state, var(--color-ink-2));
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.state-chip::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  background: var(--state, var(--color-ink-3));
+  border-radius: 50%;
+  flex: none;
+}
+
+/* The verdict panel wears its state as a left edge rule. */
+.verdict {
+  border-left: 3px solid var(--state, var(--color-ink-3));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SIGNATURE — the evidence tape
+
+   The agent's trace as a chart-recorder tape. One continuous rule, a
+   tick per action, and latency drawn at true proportion. Read it top to
+   bottom and you know why the agent did what it did.
+   ══════════════════════════════════════════════════════════════════ */
+
+.tape {
+  position: relative;
+  padding-left: 26px;
+}
+
+.tape::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--color-signal);
+  opacity: 0.35;
+  transform-origin: top;
+  animation: tape-draw 420ms ease-out both;
+}
+
+@keyframes tape-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.tape-event {
+  position: relative;
+  padding: 0 0 16px;
+  animation: tape-in 260ms ease-out both;
+}
+
+@keyframes tape-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The tick. A plain event is a hairline dash; an action is a filled node. */
+.tape-event::before {
+  content: "";
+  position: absolute;
+  left: -23px;
+  top: 6px;
+  width: 9px;
+  height: 1px;
+  background: var(--color-signal);
+  opacity: 0.5;
+}
+
+.tape-event[data-kind="action"]::before {
+  width: 9px;
+  height: 9px;
+  top: 2px;
+  left: -23px;
+  border-radius: 50%;
+  background: var(--color-panel);
+  border: 1.5px solid var(--color-signal);
+  opacity: 1;
+}
+
+/* The escalation notch: the one moment the tape visibly breaks. */
+.tape-event[data-kind="break"]::before {
+  width: 15px;
+  height: 15px;
+  top: -1px;
+  left: -26px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: var(--color-panel);
+  border: 1.5px solid var(--state, var(--color-disputed));
+  opacity: 1;
+}
+
+.tape-event[data-kind="terminal"]::before {
+  width: 9px;
+  height: 9px;
+  top: 2px;
+  left: -23px;
+  border-radius: 50%;
+  background: var(--color-signal);
+  border: 0;
+  opacity: 1;
+}
+
+/* Latency drawn at true proportion — 1px per 20ms, capped. */
+.latency-bar {
+  height: 3px;
+  background: var(--color-signal);
+  opacity: 0.5;
+  border-radius: 1px;
+  min-width: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SIGNATURE — the assurance meter
+
+   The score is a weighted sum of four things, so it is drawn as four
+   segments sized by weight and filled by value. A number you can argue
+   with beats a number you have to trust.
+   ══════════════════════════════════════════════════════════════════ */
+
+.meter {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+}
+
+.meter-seg {
+  position: relative;
+  background: var(--color-rule-soft);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: var(--state, var(--color-signal));
+  transition: height 500ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ── controls ─────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-signal);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-signal-ink);
+}
+
+.btn-quiet {
+  background: var(--color-panel);
+  border-color: var(--color-rule);
+  color: var(--color-ink);
+}
+
+.btn-quiet:hover:not(:disabled) {
+  border-color: var(--color-ink-3);
+}
+
+.field {
+  width: 100%;
+  padding: 9px 11px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.field::placeholder {
+  color: var(--color-ink-3);
+}
+
+/* One-click demo account. A tappable row rather than a third loud button:
+   these are a convenience on the way in, not the primary action. */
+.account-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 11px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.account-row:hover:not(:disabled) {
+  background: var(--color-signal-wash);
+  border-color: var(--color-signal);
+}
+
+.account-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── the rail ─────────────────────────────────────────────────────── */
+
+.rail-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 2px;
+  color: var(--color-ink-2);
+  font-size: 13px;
+  /* In the mobile tab strip these sit in a scrolling row, so they must not
+     wrap or shrink; from lg up the sidebar makes them full-width rows and
+     both properties become no-ops. */
+  white-space: nowrap;
+  flex: none;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.rail-link:hover {
+  background: var(--color-signal-wash);
+  color: var(--color-ink);
+}
+
+.rail-link[data-active="true"] {
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.rail-link[data-active="true"] .rail-count {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.rail-count {
+  /* auto has no free space to absorb inside a content-sized tab, so it
+     collapses to nothing there and pushes the count right in the sidebar. */
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-ink-3);
+}
+
+/* Hide the scrollbar on the tab strip: it is a chrome element on a phone,
+   and the bleeding last tab already says the row scrolls. */
+nav[aria-label="Sections"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+nav[aria-label="Sections"]::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── running state ────────────────────────────────────────────────── */
+
+.pulse {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

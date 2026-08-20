@@ -1,0 +1,46 @@
+# Build context hygiene for images built from the repository root.
+#
+# Only infra/docker/laravel.prod.Dockerfile uses a root context — it needs
+# files from both apps/api and infra/production. Without this file that build
+# would ship the Flutter app, the Next.js console and every document to the
+# daemon on each rebuild.
+#
+# The other two production images use their own app directory as context and
+# read apps/*/.dockerignore instead.
+
+# ── other apps, not part of the API image ────────────────────────────
+apps/web/
+apps/mobile/
+
+# ── never in any image ───────────────────────────────────────────────
+.git/
+.gitignore
+docs/
+packages/
+*.md
+!apps/api/**/*.md
+
+.env
+.env.*
+!.env.example
+
+# ── build output and local state ─────────────────────────────────────
+apps/api/vendor/
+apps/api/node_modules/
+apps/api/storage/logs/*.log
+apps/api/storage/framework/cache/data/*
+apps/api/storage/framework/sessions/*
+apps/api/storage/framework/views/*
+apps/api/database/*.sqlite
+apps/api/.phpunit.result.cache
+
+**/__pycache__/
+**/*.pyc
+
+# ── server-side runtime state, never rebuilt into an image ───────────
+infra/production/data/
+infra/production/.env
+
+.idea/
+.vscode/
+.DS_Store

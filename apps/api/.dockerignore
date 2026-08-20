@@ -1,0 +1,26 @@
+# Build context hygiene.
+#
+# The Dockerfile does `COPY . .`, so anything listed here would otherwise be
+# baked into an image layer. Two of these matter beyond image size: a host
+# .env would put real credentials into a distributable layer, and a host
+# vendor/ built on macOS would shadow the one composer installs in the image.
+
+.env
+.env.*
+!.env.example
+
+vendor/
+node_modules/
+
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+database/*.sqlite
+
+.git/
+.gitignore
+.phpunit.result.cache
+.idea/
+.vscode/
+.DS_Store
