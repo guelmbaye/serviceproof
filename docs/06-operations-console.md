@@ -84,6 +84,17 @@ which is the AA threshold rather than a margin, so small text uses `--color-sign
 (`#0050d8`, 5.85:1) while fills, rules and the evidence tape keep the brand value. White on
 the brand blue clears 5.15:1, so buttons need no adjustment.
 
+The rail is a flex column: the logo fixed at the top, the identity block pinned at the
+bottom, and only the link list between them scrolls. `min-h-0` on that middle region is what
+makes it work — a flex child refuses to shrink below its content by default, so without it
+the column grows past the viewport and `overflow-y-auto` never engages.
+
+With six links the overflow only appears below roughly 420px of viewport height. It becomes
+ordinary the moment a seventh section is added, and the previous layout failed badly rather
+than gracefully: measured at 1280×500 with fourteen links, the last one sat at 651px — off
+the screen entirely and underneath the absolutely-positioned identity block, with no
+scrollbar to suggest anything was missing.
+
 The rail carries the mark alone, not the full lockup: at 224px of rail the wordmark would
 render around 50px tall and the shield detail would turn to mud. The lockup appears on the
 sign-in screen, where there is room for it and where it is the first thing a judge sees.

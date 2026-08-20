@@ -33,7 +33,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
       {/* Sticky on every size, but on a phone it is a ~90px header rather
           than a 450px column: identity and sign-out move onto the logo row,
           and the six links become a scrollable tab strip. */}
-      <aside className="sticky top-0 z-20 flex-none border-b border-rule bg-panel px-4 py-3 lg:h-dvh lg:w-[224px] lg:border-r lg:border-b-0 lg:py-4">
+      <aside className="sticky top-0 z-20 flex-none border-b border-rule bg-panel px-4 py-3 lg:flex lg:h-dvh lg:w-[224px] lg:flex-col lg:border-r lg:border-b-0 lg:py-4">
         <div className="flex items-center justify-between gap-3">
           {/* The mark alone, not the full lockup: at 224px of rail the
               wordmark would render around 50px tall and the shield detail
@@ -65,11 +65,19 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           </div>
         </div>
 
-        <div className="mt-3 lg:mt-6">
+        {/* The only part that scrolls.
+            `min-h-0` is what makes it work: a flex child refuses to shrink
+            below its content by default, so without it the column simply grows
+            past the viewport and overflow-y-auto never engages. On a short
+            laptop screen that left the last links unreachable — no scrollbar,
+            just gone. */}
+        <div className="rail-scroll mt-3 lg:mt-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           <Rail openReviews={openReviews} />
         </div>
 
-        <div className="mt-6 hidden border-t border-rule-soft pt-4 lg:absolute lg:bottom-4 lg:block lg:w-[192px]">
+        {/* Pinned to the bottom by the flex column rather than by absolute
+            positioning, which would have scrolled away with the links. */}
+        <div className="mt-6 hidden border-t border-rule-soft pt-4 lg:block lg:flex-none">
           <p className="truncate text-[13px] font-medium">{me.name}</p>
           <p className="u-machine truncate">{me.organization?.name ?? "—"}</p>
           <div className="mt-2 flex items-center justify-between gap-2">

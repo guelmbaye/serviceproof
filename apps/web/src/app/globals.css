@@ -469,6 +469,32 @@ h4 {
   color: var(--color-ink-3);
 }
 
+/* The sidebar's scrolling region. Thin and only visible while it is needed:
+   a permanent gutter in a 224px rail is a lot of chrome for a list that
+   usually fits. */
+.rail-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule) transparent;
+  overscroll-behavior: contain;
+}
+
+.rail-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rail-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rail-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-rule);
+  border-radius: 3px;
+}
+
+.rail-scroll:hover::-webkit-scrollbar-thumb {
+  background: var(--color-ink-3);
+}
+
 /* Hide the scrollbar on the tab strip: it is a chrome element on a phone,
    and the bleeding last tab already says the row scrolls. */
 nav[aria-label="Sections"] {
