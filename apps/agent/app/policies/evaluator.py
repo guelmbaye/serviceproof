@@ -141,7 +141,18 @@ def _breakdown(
 ) -> dict:
     completeness = (required_satisfied / required_total) if required_total else (1.0 if supported else 0.0)
     consistency = ((usable - conflicting) / usable) if usable else 0.0
-    freshness = ((total - stale) / total) if total else 0.0
+
+    # Freshness is measured over the evidence that exists, not over the
+    # attempts. Dividing by `total` counted UNAVAILABLE items as fresh, since
+    # nothing that never arrived can be stale — so a run where the operator
+    # answered 500 then 400 scored a perfect 100 on freshness and collected
+    # 15 points for evidence it did not have. "How current is the evidence"
+    # cannot be answered "perfectly" when the answer is "there is none".
+    measurable = usable + stale
+    freshness = ((measurable - stale) / measurable) if measurable else 0.0
+
+    # Availability keeps its full denominator: it is precisely the ratio of
+    # attempts that came back, so the ones that did not are the point.
     availability = ((total - unavailable) / total) if total else 0.0
 
     score = round(
@@ -158,6 +169,7 @@ def _breakdown(
         },
         "weights": {"completeness": 0.40, "consistency": 0.35, "freshness": 0.15, "availability": 0.10},
         "counts": {
+            "measurable": measurable,
             "total": total,
             "usable": usable,
             "supported": supported,

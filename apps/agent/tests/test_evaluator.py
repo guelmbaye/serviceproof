@@ -102,3 +102,90 @@ def test_the_assurance_score_is_explainable():
         "completeness", "consistency", "freshness", "availability"
     }
     assert assessment.breakdown["provenance"] == "LIVE_NETWORK_EVIDENCE"
+
+
+# ── the assurance score, against real production runs ────────────────────
+
+
+def test_a_run_that_obtained_nothing_scores_nothing():
+    """The regression this test exists for.
+
+    Freshness used to divide by every attempt, so items that never arrived
+    counted as fresh — nothing that did not arrive can be stale. A live run
+    where the operator answered 500 then 400 scored 15/100, all of it from
+    freshness, for evidence it did not have. "How current is the evidence"
+    cannot be answered "perfectly" when there is none.
+    """
+    p = policy()
+    items = [
+        evidence("LOCATION_VERIFICATION", "UNAVAILABLE"),
+        evidence("DEVICE_STATUS", "UNAVAILABLE"),
+    ]
+
+    assessment = evaluator.assess(p, items)
+
+    assert assessment.assurance_score == 0
+    assert assessment.breakdown["components"]["freshness"] == 0.0
+    assert assessment.breakdown["components"]["availability"] == 0.0
+
+
+def test_freshness_still_measures_the_evidence_that_did_arrive():
+    """Narrowing the denominator must not blind the component."""
+    p = policy()
+    items = [
+        evidence("LOCATION_VERIFICATION", "SUPPORTED"),
+        evidence("DEVICE_STATUS", "STALE"),
+    ]
+
+    assessment = evaluator.assess(p, items)
+
+    # One of the two measurable items is stale.
+    assert assessment.breakdown["components"]["freshness"] == 0.5
+    # And nothing failed to arrive, so availability is untouched.
+    assert assessment.breakdown["components"]["availability"] == 1.0
+
+
+def test_an_unavailable_item_does_not_dilute_freshness():
+    """A failed call says nothing about how current the rest is."""
+    p = policy()
+    with_failure = evaluator.assess(p, [
+        evidence("LOCATION_VERIFICATION", "SUPPORTED"),
+        evidence("DEVICE_STATUS", "UNAVAILABLE"),
+    ])
+    without = evaluator.assess(p, [evidence("LOCATION_VERIFICATION", "SUPPORTED")])
+
+    assert with_failure.breakdown["components"]["freshness"] == \
+        without.breakdown["components"]["freshness"] == 1.0
+    # Availability is where the failure belongs, and it is felt there.
+    assert with_failure.breakdown["components"]["availability"] == 0.5
+
+
+def test_the_scores_from_the_recorded_demo_still_hold():
+    """Pinned against the three runs on serviceproof.vylantic.com.
+
+    These numbers appear in the submission deck, so a change to the formula
+    must break this test rather than quietly contradict a slide.
+    """
+    standard = policy(required_evidence=["LOCATION_VERIFICATION"])
+    high = policy(
+        required_evidence=["LOCATION_VERIFICATION", "DEVICE_STATUS"],
+        allow_partial=False,
+    )
+
+    # WO-1042 — one supporting signal, policy satisfied.
+    assert evaluator.assess(standard, [
+        evidence("LOCATION_VERIFICATION", "SUPPORTED"),
+    ]).assurance_score == 100
+
+    # WO-1043 — location conflicts, two others support.
+    assert evaluator.assess(high, [
+        evidence("LOCATION_VERIFICATION", "CONFLICTING"),
+        evidence("DEVICE_STATUS", "SUPPORTED"),
+        evidence("DEVICE_REACHABILITY", "SUPPORTED"),
+    ]).assurance_score == 68
+
+    # WO-1044 — the operator returned 500 then 400.
+    assert evaluator.assess(standard, [
+        evidence("LOCATION_VERIFICATION", "UNAVAILABLE"),
+        evidence("DEVICE_STATUS", "UNAVAILABLE"),
+    ]).assurance_score == 0
