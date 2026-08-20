@@ -95,6 +95,25 @@ the `BelongsToOrganization` trait, which installs a global Eloquent scope driven
 request-scoped `TenantContext`. A cross-tenant identifier does not return a 403 — it
 returns a 404, because in that tenant's world the record does not exist.
 
+## Recovering a stranded verification
+
+`openRun()` moves the claim to `VERIFYING` before the agent is called, and
+`canStartVerification()` refuses that state. Anything that throws in between —
+a bug, an agent timeout, a container killed mid-request — would leave the claim
+there permanently: a transient failure making a record unverifiable for good.
+
+Two guards close that off. Every run is wrapped, and a failure marks the run
+`FAILED` and hands the claim back to `SUBMITTED`. And a claim already found in
+`VERIFYING` is reclaimed if its open run started longer ago than the agent
+timeout plus a minute — nothing legitimate runs that long, so such a run has no
+process behind it. Within the window the claim is still refused, because
+reclaiming a run that is genuinely in flight would let two verifications write
+to the same claim.
+
+The failed run is kept either way. A verification that did not complete is part
+of the claim's history, and deleting it is the kind of tidying this system
+exists to prevent.
+
 ## Immutability
 
 `Evidence` and `AuditEvent` throw on update and delete. A reviewer who disagrees with a

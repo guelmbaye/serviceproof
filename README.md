@@ -196,6 +196,8 @@ The tests that matter most:
 - `test_planner_guardrails.py` — invented, forbidden and repeated tool calls are refused
 - `TenantIsolationTest` — a cross-tenant id returns 404, not 403
 - `EvidenceIntegrityTest` — evidence throws on update and on delete
+- `apps/api/tool/closure_check.py` — no closure reads an outer variable it did
+  not capture, which `php -l` cannot see and which shipped a broken run once
 - `ReferenceGeneratorTest` — references order numerically past WO-9999, and two
   concurrent submissions cannot mint the same number
 - `test_nac_endpoints.py` — the exact Nokia URL, headers and body for every capability,
