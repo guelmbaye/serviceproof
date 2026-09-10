@@ -11,6 +11,7 @@ from app.schemas import (
     ClaimIn,
     DemoIn,
     DeviceIn,
+    EntitlementIn,
     ExpectedSite,
     PolicyIn,
     RequestMeta,
@@ -49,6 +50,7 @@ def build_request(
     allow_partial: bool = True,
     notes: str | None = None,
     identifier: str = "+99999991000",
+    entitlement=None,
 ) -> VerifyRequest:
     return VerifyRequest(
         request=RequestMeta(verification_run_id="run-1", organization_id="org-1"),
@@ -65,7 +67,14 @@ def build_request(
                 name="Site A", latitude=latitude, longitude=longitude, radius_m=radius_m
             ),
         ),
-        device=DeviceIn(reference="DEV-001", identifier=identifier),
+        # An active entitlement by default: these tests are about evidence
+        # behaviour, and the gate has its own tests. Pass entitlement=... to
+        # exercise a refusal.
+        device=DeviceIn(
+            reference="DEV-001",
+            identifier=identifier,
+            entitlement=entitlement or EntitlementIn(status="ACTIVE", reference="BIND-001"),
+        ),
         policy=PolicyIn(
             required_evidence=required or ["LOCATION_VERIFICATION"],
             optional_evidence=optional if optional is not None else ["DEVICE_STATUS", "DEVICE_REACHABILITY"],

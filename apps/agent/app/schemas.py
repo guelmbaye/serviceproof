@@ -71,12 +71,37 @@ class WorkerIn(BaseModel):
     reference: str = "UNKNOWN"
 
 
+class EntitlementIn(BaseModel):
+    """Permission to ask the operator about this device.
+
+    Knowing an MSISDN does not confer the right to query it. The product core
+    resolves the binding between a worker, a device and the organisation, and
+    states whether that binding currently authorises network queries. The agent
+    enforces it rather than assuming it: an absent or inactive entitlement stops
+    the run before any CAMARA call is made.
+
+    Deliberately thin. Full consent management, per-jurisdiction lawful basis
+    and revocation workflows are scoped and not built, and pretending otherwise
+    would be the kind of overclaim this product exists to refuse.
+    """
+
+    status: str = "UNKNOWN"
+    reference: str | None = None
+    granted_at: datetime | None = None
+    expires_at: datetime | None = None
+
+    @property
+    def permits_network_query(self) -> bool:
+        return self.status.upper() == "ACTIVE"
+
+
 class DeviceIn(BaseModel):
     reference: str
     identifier_type: str = "PHONE_NUMBER"
     identifier_key: str = "phoneNumber"
     identifier: str
     is_simulator: bool = True
+    entitlement: EntitlementIn = Field(default_factory=EntitlementIn)
 
     def camara_device(self) -> dict[str, Any]:
         """The CAMARA `device` object."""

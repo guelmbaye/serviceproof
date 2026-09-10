@@ -11,7 +11,7 @@ export default async function LoginPage() {
   if (await getToken()) redirect("/overview");
 
   return (
-    <main className="mx-auto grid min-h-dvh max-w-5xl items-center gap-10 px-5 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+    <main className="mx-auto grid min-h-dvh max-w-5xl items-center gap-10 px-5 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
       <div>
         <Image
           src="/logo.png"
@@ -19,9 +19,9 @@ export default async function LoginPage() {
           width={2039}
           height={582}
           priority
-          className="h-auto w-[min(340px,72vw)]"
+          className="h-auto w-[min(300px,70vw)]"
         />
-        <h1 className="mt-7 text-[clamp(2.2rem,5vw,3.4rem)] leading-[1.02]">
+        <h1 className="mt-5 text-[clamp(2rem,4.4vw,3rem)] leading-[1.03]">
           Prove the service.
           <br />
           Trust the evidence.
@@ -36,11 +36,28 @@ export default async function LoginPage() {
             stood here had drifted: three states instead of four, PARTIAL
             missing entirely, and wording that no longer matched the console.
             Four verdicts described in two places is three too many. */}
-        <div className="mt-9 max-w-md border-t border-rule pt-6">
+        <div className="mt-7 max-w-md border-t border-rule pt-5">
           <p className="u-eyebrow">What each verdict means</p>
           <div className="mt-3">
             <StateLegend />
           </div>
+        </div>
+
+        {/* Two facts a reviewer arriving cold cannot otherwise know: that this
+            deployment calls the operator for real, and what to do once inside.
+            Without them the page explains the product and leaves the visitor
+            at a form. */}
+        <div className="mt-6 max-w-md border-t border-rule pt-5">
+          <p className="text-[13px] leading-relaxed text-ink-2">
+            This deployment calls{" "}
+            <span className="text-ink">Nokia Network as Code</span> for real. Sign in as
+            Operations, open a claim, and press{" "}
+            <span className="text-ink">Verify with network evidence</span>.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
+            A routine claim costs one network call. A contested one costs three — not because
+            anyone wrote a branch for it, but because the first signal came back conflicting.
+          </p>
         </div>
       </div>
 

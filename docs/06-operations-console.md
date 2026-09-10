@@ -103,6 +103,43 @@ Favicon, apple touch icon and social card are resolved by Next from `icon.png`,
 `apple-icon.png` and `opengraph-image.png` sitting beside the root layout — no hand-written
 `<link>` tags to drift out of sync.
 
+## The sign-in page has two jobs
+
+It is the first thing a reviewer sees when they open the deployment, and it is the closing
+frame of the demonstration video — the product has no title card, and inventing one would be
+worse than ending on a screen that exists.
+
+So it carries two facts nothing else on the page could tell a visitor arriving cold: that
+this deployment calls the operator for real, and what to do once inside. Before that it
+explained the product and left the visitor at a form.
+
+Adding them also fixed a real gap. At 1920×1080 — the recording resolution — the content
+occupied roughly the middle third of the viewport with wide empty bands above and below. The
+answer was to add the information that was missing, not to stretch what was already there.
+
+Then the opposite problem appeared. A real browser window is not 1080px tall: with the
+chrome open on a laptop it is closer to 610, and at that height the new lines fell below the
+fold — the page looked finished while the two facts that justify it were unreachable without
+scrolling. The vertical rhythm was tightened until the first of them clears the fold at
+610px: smaller top padding, a 300px lockup instead of 340, a slightly shorter headline, and
+one step off each gap. Verified from 360×640 up to 1920×1080.
+
+## Minimum sufficient evidence
+
+The run panel leads with the evidence budget — the count, a slot for each call the policy
+allows, and a line saying why the loop stopped. It used to be one field among six, which
+buried the only thing that answers "why do you need an AI agent?": the agent spent one call
+on a clean claim and three on a contested one, and the difference came from what the network
+said rather than from a branch somebody wrote.
+
+It also has to survive being watched with the sound off. On a recorded demonstration,
+`1 / 3` beside `3 / 3` is the proof, and it needs to be legible at a glance.
+
+The status line is derived from what happened, not from a stored label, and the wording is
+deliberate. "Budget exhausted" reads as a loop that ran out; "escalated to the ceiling"
+describes an agent that chose to gather more and found the conflict still standing. The
+first is a failure, the second is the behaviour the product exists to demonstrate.
+
 ## Typography
 
 Three faces, each with a job:

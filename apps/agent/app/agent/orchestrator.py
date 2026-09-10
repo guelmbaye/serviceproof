@@ -21,6 +21,7 @@ import time
 from app.agent.planner import Planner
 from app.agent.trace import TraceRecorder
 from app.camara import normalizer
+from app.camara.normalizer import is_operator_test_device
 from app.camara.client import NacClient, NacResponse
 from app.camara.demo import DemoNetwork
 from app.config import AGENT_VERSION, Settings
@@ -28,6 +29,7 @@ from app.llm.factory import build_llm
 from app.policies import evaluator
 from app.schemas import (
     AssessmentOut,
+    DecisionOut,
     EvidenceOut,
     EvidencePlanOut,
     PlannerInfo,
@@ -76,6 +78,39 @@ class EvidenceOrchestrator:
             "required_evidence": policy.required_evidence,
             "evidence_budget": budget.max_tool_calls,
             "evidence_mode": mode,
+        })
+
+        # ── 0. Entitlement, before anything reaches the operator ─────────
+        #
+        # Knowing an MSISDN does not confer the right to query it. The binding
+        # between a worker, a device and the organisation either authorises a
+        # network query or it does not, and the agent enforces that rather than
+        # assuming the product core already did.
+        #
+        # This runs before planning, not after: a refusal must cost zero API
+        # calls, and the trace has to show the check happening ahead of the
+        # first request rather than as a formality afterwards.
+        entitlement = payload.device.entitlement if payload.device else None
+
+        if entitlement is None or not entitlement.permits_network_query:
+            status = entitlement.status if entitlement else "MISSING"
+            trace.add("ENTITLEMENT_REFUSED", "Network entitlement not active", {
+                "status": status,
+                "device": payload.device.reference if payload.device else None,
+            })
+
+            return self._refuse(
+                payload, trace, started,
+                reason=(
+                    f"No active network entitlement for this device (status: {status}). "
+                    "Nothing was asked of the operator."
+                ),
+            )
+
+        trace.add("ENTITLEMENT_VERIFIED", "Network entitlement verified", {
+            "status": entitlement.status,
+            "reference": entitlement.reference,
+            "device": payload.device.reference if payload.device else None,
         })
 
         # ── 1. Plan before calling anything ──────────────────────────────
@@ -174,6 +209,17 @@ class EvidenceOrchestrator:
                 )
 
             calls += 1
+
+            # Record which of the three source modes produced this item, in
+            # the item itself. A real HTTPS call to the operator about one of
+            # ITU's reserved +999 test numbers is not the same thing as a call
+            # about a subscriber, and presenting both as "live network
+            # evidence" claims more than we did.
+            item.normalized = {
+                **item.normalized,
+                "operator_test_device": is_operator_test_device(payload.device.identifier),
+            }
+
             evidence.append(item)
 
             label = {
@@ -256,6 +302,72 @@ class EvidenceOrchestrator:
             duration_ms=duration_ms,
             escalated=escalated,
             used_demo_fallback=ctx.used_demo_fallback,
+        )
+
+    def _refuse(
+        self,
+        payload: VerifyRequest,
+        trace: TraceRecorder,
+        started: float,
+        *,
+        reason: str,
+    ) -> VerifyResponse:
+        """End the run without asking the operator anything.
+
+        UNVERIFIED, not DISPUTED. A missing entitlement says nothing about
+        whether the technician did the work — it says we were not permitted to
+        look. Turning an authorisation gap into evidence against a person is
+        precisely the failure mode this product is built to avoid.
+        """
+        assessment = AssessmentOut(
+            sufficient=False,
+            conflicting=False,
+            missing_required=list(payload.policy.required_evidence),
+            assurance_score=0,
+            breakdown={
+                "components": {
+                    "completeness": 0.0,
+                    "consistency": 0.0,
+                    "freshness": 0.0,
+                    "availability": 0.0,
+                },
+                "counts": {"total": 0, "measurable": 0},
+                "provenance": "NO_EVIDENCE_GATHERED",
+            },
+            rationale=reason,
+        )
+
+        decision = DecisionOut(
+            state="UNVERIFIED",
+            recommended_action="MANUAL_VERIFICATION",
+            rationale=reason,
+            policy_satisfied=False,
+        )
+
+        trace.add("AGENT_COMPLETED", "Verification ended before any network call", {
+            "state": decision.state,
+            "tool_calls_used": 0,
+        })
+
+        return VerifyResponse(
+            status="COMPLETED",
+            agent_version=AGENT_VERSION,
+            # No planner ran, so the deterministic mode is the honest label:
+            # nothing was inferred, the gate simply refused.
+            planner=PlannerInfo(mode="heuristic", provider=None, model=None),
+            evidence_plan=EvidencePlanOut(
+                minimum=list(payload.policy.required_evidence),
+                escalation=[],
+                rationale="No plan was built: the run stopped at the entitlement check.",
+            ),
+            evidence=[],
+            trace=trace.events,
+            assessment=assessment,
+            decision=decision,
+            tool_calls_used=0,
+            duration_ms=int((time.perf_counter() - started) * 1000),
+            escalated=False,
+            used_demo_fallback=False,
         )
 
     # ── helpers ──────────────────────────────────────────────────────────

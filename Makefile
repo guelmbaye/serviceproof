@@ -29,10 +29,19 @@ logs: ## Tail all logs
 migrate: ## Run Laravel migrations
 	$(COMPOSE) exec -T api php artisan migrate --force
 
+# config:clear before every seed, deliberately.
+#
+# The verification policies are built from config('serviceproof.policy_templates'),
+# so a cached config silently overrides the file. Changing a policy's evidence
+# budget and reseeding then appears to do nothing: the seeder's own code takes
+# effect, the config-derived values do not, and the two disagree with no error
+# anywhere. Clearing costs a second and removes the whole class of confusion.
 fresh: ## Drop + rebuild the database, then seed
+	$(COMPOSE) exec -T api php artisan config:clear
 	$(COMPOSE) exec -T api php artisan migrate:fresh --seed --force
 
 seed: ## Seed demo organisations, users, work orders
+	$(COMPOSE) exec -T api php artisan config:clear
 	$(COMPOSE) exec -T api php artisan db:seed --force
 
 test: ## Run Laravel + agent test suites

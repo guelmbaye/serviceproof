@@ -189,3 +189,65 @@ def test_the_scores_from_the_recorded_demo_still_hold():
         evidence("LOCATION_VERIFICATION", "UNAVAILABLE"),
         evidence("DEVICE_STATUS", "UNAVAILABLE"),
     ]).assurance_score == 0
+
+
+# ── stopping when nothing further can help ───────────────────────────────
+
+
+def test_a_conflict_earns_one_corroborating_call_not_the_whole_budget():
+    """The mentor's sharpest point about the previous build.
+
+    A conflicting primary signal blocks automatic verification whatever else
+    agrees. Spending the rest of the budget on capabilities that cannot change
+    that is the opposite of what an evidence budget is for — and it reads to a
+    reviewer as a loop running to completion rather than an agent reasoning
+    about evidence utility.
+    """
+    p = policy(required_evidence=["LOCATION_VERIFICATION"])
+
+    # First conflict, nothing else yet: one corroborating call is worth making.
+    first = [evidence("LOCATION_VERIFICATION", "CONFLICTING")]
+    escalate, reason = evaluator.should_escalate(
+        p, first, evaluator.assess(p, first), budget_left=2
+    )
+    assert escalate is True
+    assert "corroborating evidence is needed" in reason
+
+    # Corroboration in hand and the conflict still standing: stop.
+    second = first + [evidence("DEVICE_STATUS", "SUPPORTED")]
+    escalate, reason = evaluator.should_escalate(
+        p, second, evaluator.assess(p, second), budget_left=1
+    )
+    assert escalate is False
+    assert "would not change the decision" in reason
+
+
+def test_stopping_early_is_not_the_same_as_running_out():
+    """Budget left over is the point: the agent chose to stop."""
+    p = policy(required_evidence=["LOCATION_VERIFICATION"])
+    items = [
+        evidence("LOCATION_VERIFICATION", "CONFLICTING"),
+        evidence("DEVICE_STATUS", "SUPPORTED"),
+    ]
+
+    escalate, reason = evaluator.should_escalate(
+        p, items, evaluator.assess(p, items), budget_left=5
+    )
+
+    assert escalate is False
+    assert "budget" not in reason.lower(), "This is a reasoned stop, not an exhausted one."
+
+
+def test_an_unavailable_corroboration_does_not_count_as_corroboration():
+    """A call that failed told us nothing, so the next one is still worth making."""
+    p = policy(required_evidence=["LOCATION_VERIFICATION"])
+    items = [
+        evidence("LOCATION_VERIFICATION", "CONFLICTING"),
+        evidence("DEVICE_STATUS", "UNAVAILABLE"),
+    ]
+
+    escalate, _ = evaluator.should_escalate(
+        p, items, evaluator.assess(p, items), budget_left=2
+    )
+
+    assert escalate is True

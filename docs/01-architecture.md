@@ -114,6 +114,57 @@ The failed run is kept either way. A verification that did not complete is part
 of the claim's history, and deleting it is the kind of tidying this system
 exists to prevent.
 
+## Permission before evidence
+
+Knowing an MSISDN does not confer the right to query it. The binding between a worker, a
+device and the organisation either authorises a network query or it does not, and the agent
+enforces that rather than assuming the product core already did.
+
+The check runs **before planning**, so a refusal costs zero API calls. That ordering is the
+whole point: an authorisation gate that fires after the request has gone out is a formality,
+not a control. The trace shows `ENTITLEMENT_VERIFIED` ahead of the first `TOOL_CALLED`, or
+`ENTITLEMENT_REFUSED` and nothing after it.
+
+A refusal is `UNVERIFIED`, never `DISPUTED`. An authorisation gap says nothing about whether
+the technician did the work — it says we were not permitted to look. Turning it into evidence
+against a person is exactly the failure this product exists to avoid.
+
+It is deliberately thin. Full consent management, per-jurisdiction lawful basis and
+revocation workflows are scoped and not built, and the documentation says so rather than
+implying a compliance story the code does not deliver.
+
+## What the evidence does not prove
+
+The product's strongest objection is that a device inside a geofence is not a person doing
+work. It is a fair objection and the answer is not to argue with it.
+
+So a VERIFIED verdict carries its own limitation on the card where it is read: network
+evidence sufficiently supports the claim under the configured policy, and it is supporting
+evidence rather than independent proof that the physical task was completed. The location
+summary says *verification radius*, never *accuracy* — operator positioning varies from
+hundreds of metres to kilometres with network density and technology, and the radius is what
+we asked about, not what the network can resolve.
+
+The three source modes are named rather than implied: **Live network** for a subscriber,
+**Nokia NaC simulator** for a number in ITU's reserved +999 test range, and **ServiceProof
+demo fallback · simulated** for our own adapter. A real call about a test device is not a
+live measurement, and a judge who recognises the range would be right to say so.
+
+Recommended actions name the consequence rather than the workflow step: *Close and proceed*,
+*Hold · human review opened*. What a business reads is what happens to the payment.
+
+## Escalation stops when nothing further would help
+
+A conflicting primary signal blocks automatic verification whatever else agrees. One
+corroborating call is worth making — it separates "the device was elsewhere" from "the
+network could not see the device at all" — and a second is worth none.
+
+So the agent spends one, then stops with budget to spare, and the run panel says so:
+*Stopped: nothing further would help*. Leaving budget unspent is the point. An agent that
+runs to its ceiling looks like a loop completing; an agent that stops early because more
+evidence could not change the answer is reasoning about evidence utility, which is the thing
+worth demonstrating.
+
 ## Immutability
 
 `Evidence` and `AuditEvent` throw on update and delete. A reviewer who disagrees with a

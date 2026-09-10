@@ -1,5 +1,22 @@
 # Demo runbook
 
+
+## Before every recording: clear the config cache
+
+```bash
+php artisan config:clear && php artisan migrate:fresh --seed
+```
+
+`config:clear` is not optional and it is not superstition. The verification policies are
+built from `config('serviceproof.policy_templates')`, so a cached config silently overrides
+the file. Change a policy's evidence budget, reseed, and the seeder's own code takes effect
+while the config-derived values do not — with no error anywhere. The symptom is a run panel
+reading `2 / 2` when the file says three, and the two demonstration runs failing to show the
+escalation the whole submission is built on.
+
+`make fresh` and `make seed` now clear it for you. This note is for anyone running artisan
+directly.
+
 ## Before you start
 
 ```bash

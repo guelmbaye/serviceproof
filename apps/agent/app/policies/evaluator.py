@@ -115,6 +115,26 @@ def should_escalate(
         return False, "Minimum sufficient evidence already collected."
 
     if assessment.conflicting:
+        # One corroborating call, not every remaining tool.
+        #
+        # A conflicting primary signal blocks automatic verification whatever
+        # else agrees, so a second corroborating signal is worth one call — it
+        # distinguishes "the device was elsewhere" from "the network could not
+        # see the device at all" — and a third is worth none. Spending the rest
+        # of the budget on signals that cannot change the outcome is the
+        # opposite of what an evidence budget is for.
+        corroborating = [
+            item for item in evidence
+            if item.type not in policy.required_evidence and item.status != "UNAVAILABLE"
+        ]
+
+        if corroborating:
+            return False, (
+                "A signal conflicts with the claim and corroborating evidence did not "
+                "reconcile it. No remaining capability can satisfy the requirement, so "
+                "further calls would not change the decision."
+            )
+
         return True, "A signal conflicts with the claim; corroborating evidence is needed to reconcile it."
 
     if assessment.missing_required:

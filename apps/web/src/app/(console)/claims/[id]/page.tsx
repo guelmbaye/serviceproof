@@ -5,6 +5,7 @@ import { ApiError, Unauthenticated, api, tryApi } from "@/lib/api";
 import { humanise, ms, stamp } from "@/lib/format";
 import type { Claim, Evidence, SessionUser, VerificationRun } from "@/lib/types";
 import { AssuranceMeter } from "@/components/AssuranceMeter";
+import { EvidenceBudget } from "@/components/EvidenceBudget";
 import { EvidenceCard } from "@/components/EvidenceCard";
 import { EvidenceTape } from "@/components/EvidenceTape";
 import { Empty, Field, Panel } from "@/components/Panel";
@@ -103,6 +104,20 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
                   </p>
                 )}
 
+                  {decision.state === "VERIFIED" && (
+                    /* The strongest objection to this product, answered where the
+                       verdict is read rather than in a document nobody opens.
+                       Network presence supports a claim; it does not prove a person
+                       performed a physical task. Saying so on the VERIFIED card
+                       costs nothing and removes an overclaim a reviewer would
+                       otherwise have to make on our behalf. */
+                    <p className="mt-3 text-[12px] leading-relaxed text-ink-2">
+                      Network evidence sufficiently supports this claim under the configured
+                      policy. It is supporting evidence, not independent proof that the
+                      physical task was completed.
+                    </p>
+                  )}
+
                 <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
                   <Field
                     label="Decided by"
@@ -187,17 +202,20 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
 
           {run && (
             <>
-              <Panel eyebrow="What the agent did" title="Evidence tape">
-                <EvidenceTape trace={run.trace ?? []} />
-              </Panel>
-
               <Panel eyebrow="Run detail" title="How this decision was reached">
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 p-4">
-                  <Field
-                    label="API calls"
-                    value={`${run.budget.tool_calls_used} of ${run.budget.max_tool_calls}`}
-                    mono
-                  />
+                {/* The evidence budget, given the room it deserves.
+                    "Why do you need an AI agent?" is answered here and nowhere
+                    else: the agent chose to spend one call on a clean claim and
+                    three on a contested one. As one field among six that point
+                    was invisible, and it is the whole argument. */}
+                <EvidenceBudget
+                  used={run.budget.tool_calls_used}
+                  max={run.budget.max_tool_calls}
+                  escalated={run.escalated}
+                  resolved={claim.decision?.policy_satisfied ?? false}
+                />
+
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-rule-soft p-4">
                   <Field label="Duration" value={ms(run.duration_ms)} mono />
                   <Field label="Policy" value={run.policy?.key ?? "—"} mono />
                   <Field label="Assurance level" value={run.assurance_level} mono />
@@ -210,7 +228,6 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
                     }
                     mono
                   />
-                  <Field label="Escalated" value={run.escalated ? "yes" : "no"} mono />
                 </dl>
 
                 {run.evidence_plan?.rationale && (
@@ -241,6 +258,10 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
                     {run.failure_reason}
                   </p>
                 )}
+              </Panel>
+
+              <Panel eyebrow="What the agent did" title="Evidence tape">
+                <EvidenceTape trace={run.trace ?? []} />
               </Panel>
             </>
           )}

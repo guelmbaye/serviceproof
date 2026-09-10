@@ -152,7 +152,15 @@ class DemoOrganizationSeeder extends Seeder
                 'site_radius_m' => 500,
                 'assigned_user_id' => $created['tech2@acme-field.test']->id,
                 'device_id' => $deviceModels['DEV-002']->id,
-                'policy_id' => $highAssurance?->id,
+                // The same policy as WO-1042, deliberately.
+                //
+                // The demo has to prove that a different agent trajectory
+                // comes from different network evidence, not from a different
+                // rulebook. With one work order on STANDARD and the other on
+                // HIGH_ASSURANCE, a reviewer could fairly say the escalation
+                // was just the second policy's minimum being met — which is
+                // exactly the objection the demonstration exists to close.
+                'policy_id' => $standard?->id,
                 'risk_level' => 'HIGH',
                 'status' => WorkOrderStatus::IN_PROGRESS->value,
             ],

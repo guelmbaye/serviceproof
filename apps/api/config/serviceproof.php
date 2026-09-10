@@ -32,7 +32,15 @@ return [
             'assurance_level' => 'STANDARD',
             'required_evidence' => ['LOCATION_VERIFICATION'],
             'optional_evidence' => ['DEVICE_STATUS', 'DEVICE_REACHABILITY'],
-            'max_tool_calls' => 2,
+            // Three, not two.
+            //
+            // Location alone satisfies this policy, so a routine claim still
+            // costs one call — the budget is a ceiling, not a target. But when
+            // the first signal conflicts, the agent needs room to reach for
+            // both corroborating signals before it gives up. At two it ran out
+            // of budget mid-escalation, which reads as a truncated loop rather
+            // than a reasoned one.
+            'max_tool_calls' => 3,
             'max_latency_ms' => 12000,
             'location_radius_m' => 1000,
             'freshness_seconds' => 900,

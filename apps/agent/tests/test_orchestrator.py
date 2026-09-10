@@ -177,3 +177,68 @@ async def test_the_simulator_position_matches_what_the_live_network_reports(sett
     assert far_away.evidence[0].status == "CONFLICTING"
     assert far_away.decision.state == "DISPUTED"
     assert far_away.escalated is True
+
+
+# ── entitlement: permission before evidence ──────────────────────────────
+
+
+async def test_no_entitlement_means_nothing_is_asked_of_the_operator(settings):
+    """Knowing an MSISDN does not confer the right to query it.
+
+    The check runs before planning, so a refusal costs zero API calls. That
+    ordering is the point: an authorisation gate that fires after the request
+    has gone out is a formality, not a control.
+    """
+    from app.schemas import EntitlementIn
+
+    request = build_request(entitlement=EntitlementIn(status="REVOKED"))
+    result = await EvidenceOrchestrator(settings).run(request)
+
+    assert result.tool_calls_used == 0
+    assert result.evidence == []
+
+    labels = [event.event_type for event in result.trace]
+    assert "ENTITLEMENT_REFUSED" in labels
+    assert "TOOL_CALLED" not in labels
+
+
+async def test_a_missing_entitlement_is_unverified_not_disputed(settings):
+    """An authorisation gap says nothing about whether the work happened.
+
+    Turning it into evidence against the technician is exactly the failure
+    this product exists to avoid, so the verdict is an absence.
+    """
+    from app.schemas import EntitlementIn
+
+    result = await EvidenceOrchestrator(settings).run(
+        build_request(entitlement=EntitlementIn(status="UNKNOWN"))
+    )
+
+    assert result.decision.state == "UNVERIFIED"
+    assert result.decision.recommended_action == "MANUAL_VERIFICATION"
+    assert "entitlement" in result.decision.rationale.lower()
+    assert result.assessment.assurance_score == 0
+
+
+async def test_an_active_entitlement_is_recorded_before_the_first_call(settings):
+    """The trace must show the check happening ahead of any request."""
+    result = await EvidenceOrchestrator(settings).run(build_request())
+
+    labels = [event.event_type for event in result.trace]
+
+    assert "ENTITLEMENT_VERIFIED" in labels
+    assert labels.index("ENTITLEMENT_VERIFIED") < labels.index("TOOL_CALLED")
+
+
+async def test_the_refusal_never_reaches_the_network(settings):
+    """No plan, no tools, no fallback — the run stops at the gate."""
+    from app.schemas import EntitlementIn
+
+    result = await EvidenceOrchestrator(settings).run(
+        build_request(entitlement=EntitlementIn(status="EXPIRED"))
+    )
+
+    assert result.used_demo_fallback is False
+    assert result.escalated is False
+    assert result.evidence_plan.minimum == ["LOCATION_VERIFICATION"]
+    assert "entitlement check" in result.evidence_plan.rationale

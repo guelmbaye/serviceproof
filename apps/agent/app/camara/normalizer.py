@@ -245,6 +245,21 @@ def _phrase(channels: list[str]) -> str:
     return ", ".join(names[:-1]) + " and " + names[-1]
 
 
+# +999 is reserved by ITU-T E.164 for trials and testing. Nokia's documented
+# simulator numbers sit in it, so a call can be a genuine HTTPS request to the
+# operator's gateway while the device on the other end is a test identifier
+# rather than a subscriber.
+#
+# Reporting both as "live network evidence" overclaims. The three modes stay
+# visually distinct: a real call about a real device, a real call about a test
+# device, and our own local adapter.
+ITU_TEST_RANGE_PREFIX = "+999"
+
+
+def is_operator_test_device(identifier: str | None) -> bool:
+    return bool(identifier) and identifier.strip().startswith(ITU_TEST_RANGE_PREFIX)
+
+
 def unreadable(evidence_type: str, response: NacResponse, source: str, detail: str) -> EvidenceOut:
     """The call succeeded and the answer means nothing to us.
 
@@ -286,7 +301,12 @@ def location_verification(
 
     if result == "TRUE":
         status, reliability = "SUPPORTED", 0.94
-        summary = f"Device consistent with {site_name} (within {radius_m} m)."
+        # "within 1000 m" is the radius we asked about, not a claim about how
+        # precisely the network can place a device. Operator positioning
+        # accuracy varies from hundreds of metres to kilometres with network
+        # density and technology, so the wording says verification radius and
+        # never implies accuracy.
+        summary = f"Device consistent with {site_name} (verification radius {radius_m} m)."
     elif result == "FALSE":
         status, reliability = "CONFLICTING", 0.9
         summary = f"Device not consistent with {site_name} at the time observed by the network."

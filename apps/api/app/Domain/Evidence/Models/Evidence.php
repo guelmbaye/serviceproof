@@ -86,7 +86,7 @@ class Evidence extends Model
     {
         return [
             'source' => $this->source->value,
-            'source_label' => $this->source->label(),
+            'source_label' => $this->sourceLabel(),
             'provider' => $this->provider,
             'api' => $this->api_name,
             'request_id' => $this->request_id,
@@ -96,5 +96,24 @@ class Evidence extends Model
             'age_seconds' => $this->age_seconds,
             'latency_ms' => $this->latency_ms,
         ];
+    }
+
+    /**
+     * The three source modes, told apart.
+     *
+     * A real HTTPS call to the operator about one of ITU's reserved +999 test
+     * numbers is not the same thing as a call about a subscriber. Presenting
+     * both as "live network evidence" claims more than was done, and a judge
+     * who recognises the test range would be right to say so.
+     */
+    public function sourceLabel(): string
+    {
+        if (! $this->source->isLive()) {
+            return $this->source->label();
+        }
+
+        return ($this->normalized['operator_test_device'] ?? false)
+            ? 'Nokia NaC simulator'
+            : 'Live network';
     }
 }
