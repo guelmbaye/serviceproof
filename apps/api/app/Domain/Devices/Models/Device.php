@@ -53,6 +53,32 @@ class Device extends Model
             'identifier_key' => $key,
             'identifier' => $this->network_identifier,
             'is_simulator' => (bool) $this->is_simulator,
+            'entitlement' => $this->networkEntitlement(),
+        ];
+    }
+
+    /**
+     * Whether this organisation may currently ask the operator about this
+     * device. The agent refuses to make any CAMARA call without it.
+     *
+     * Derived from the device record rather than from a separate consent
+     * store, because a separate store would imply a consent lifecycle this
+     * build does not have. A device belongs to one organisation and one
+     * worker, and an ACTIVE device is one the organisation has registered and
+     * not retired. That is a thin entitlement and it is described as one.
+     *
+     * What it deliberately is not: per-jurisdiction lawful basis, worker-facing
+     * disclosure, or revocation with an audit trail. Those are scoped and
+     * unbuilt, and inventing a richer model here would claim a compliance
+     * story the code does not deliver.
+     */
+    public function networkEntitlement(): array
+    {
+        return [
+            'status' => $this->status === 'ACTIVE' ? 'ACTIVE' : (string) $this->status,
+            'reference' => "BIND-{$this->reference}",
+            'granted_at' => $this->created_at?->toIso8601String(),
+            'expires_at' => null,
         ];
     }
 }

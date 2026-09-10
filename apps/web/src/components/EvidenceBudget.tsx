@@ -31,7 +31,16 @@ export function EvidenceBudget({
   // when what happened is an agent that chose to escalate and found the
   // conflict still standing. The first is a failure; the second is the
   // behaviour the product exists to demonstrate.
-  const [status, why] = !escalated
+  // Zero calls is not a cheap verification, it is a run that never started.
+  // The derivation used to fall through to "minimum sufficient evidence",
+  // which told a reviewer the policy was satisfied by a first signal that was
+  // never requested — the most misleading sentence the panel could produce.
+  const [status, why] = used === 0
+    ? [
+        "Stopped before any network call",
+        "The run ended at a pre-flight check. Nothing was asked of the operator, so there is no evidence to weigh.",
+      ]
+    : !escalated
     ? [
         "Minimum sufficient evidence",
         "The policy was satisfied by the first signal. The agent stopped.",
@@ -57,7 +66,9 @@ export function EvidenceBudget({
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-4">
       <div className="flex items-baseline gap-1.5">
-        <span className="u-ref text-[34px] leading-none">{used}</span>
+        <span className={`u-ref text-[34px] leading-none ${used === 0 ? "text-ink-3" : ""}`}>
+          {used}
+        </span>
         <span className="u-machine text-[15px]">/ {max}</span>
       </div>
 
