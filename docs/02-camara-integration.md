@@ -70,7 +70,30 @@ means anything about a person is a reviewer's. A test asserts the summary contai
 The escalation order lives in the policy, not in the planner, because it is an operational
 judgment rather than an algorithm: `['DEVICE_SWAP', 'DEVICE_STATUS', 'DEVICE_REACHABILITY']`.
 
-> **The endpoint path is unverified.** `NAC_PATH_DEVICE_SWAP` defaults to the CAMARA standard
+> **Nokia mounts Device Swap differently from every other capability here.**
+>
+> ```
+> /passthrough/camara/v1/device-swap/device-swap/v1/check
+> ```
+>
+> A passthrough prefix, and the segment repeated. The body is flat too —
+> `{"phoneNumber": "+999…", "maxAge": 240}` rather than CAMARA's `{"device": {…}}`
+> envelope. Two departures from the standard, neither guessable, and fixing only the path
+> would have turned a 404 into a 400 that looked like a second capability failure.
+>
+> Both are pinned by wire-contract tests, as the other three capabilities are. The lookback
+> window is configurable because "changed recently" is a policy question, not a constant.
+>
+> **The note that was here before, kept because it was right:** Confirmed on the deployed system:
+> `/device-swap/v0/check` does not exist on the Network as Code gateway. The system degrades
+> exactly as designed — UNAVAILABLE evidence, never an accusation, with a message saying the
+> network cannot answer for this device — but Run B loses the signal its argument rests on.
+>
+> Run `device-swap-path.sh` to find the real path, then set `NAC_PATH_DEVICE_SWAP`. If no
+> path responds, the capability is probably not on the subscription, and the fallback is to
+> re-add `DEVICE_STATUS` to the entitlement so the agent has a corroboration it can reach.
+>
+> **The original note, kept because it was right:** `NAC_PATH_DEVICE_SWAP` defaults to the CAMARA standard
 > `/device-swap/v0/check`. Confirm it against the Nokia portal before a live demonstration:
 > a wrong path returns 404, which this system correctly records as UNAVAILABLE rather than as
 > evidence against anyone — but the signal is lost and the run is weaker for it.

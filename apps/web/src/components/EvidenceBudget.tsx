@@ -56,7 +56,11 @@ export function EvidenceBudget({
             // budget was left on the table because spending it could not have
             // changed the answer.
             "Stopped: nothing further would help",
-            "A signal conflicted and corroboration did not reconcile it. No remaining capability could satisfy the requirement, so the agent stopped with budget to spare.",
+            // "did not settle it", not "did not reconcile it". A corroborating
+            // call that returned 404 never answered — it did not disagree. The
+            // stronger phrasing would describe a conversation that did not
+            // happen.
+            "A signal conflicted and no further capability could settle it, so the agent stopped with budget to spare.",
           ]
         : [
             "Escalated to the ceiling",
