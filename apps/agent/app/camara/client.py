@@ -205,9 +205,17 @@ class NacClient:
         correctly reports as UNAVAILABLE rather than as evidence against
         anyone, but a demo built on it would show nothing.
         """
+        # A flat body, not CAMARA's { "device": { … } } envelope.
+        #
+        # Nokia's passthrough route takes the identifier at the top level with
+        # a maxAge alongside it. Fixing the path alone would have produced a
+        # 400 and looked like a second capability failure.
+        body: dict = {"maxAge": self.settings.nac_device_swap_max_age_hours}
+        body.update(device)
+
         return await self._post(
             self.settings.nac_path_device_swap,
-            {"device": device},
+            body,
             api="Device Swap",
         )
 

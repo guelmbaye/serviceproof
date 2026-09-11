@@ -57,10 +57,18 @@ class Settings(BaseSettings):
     # they will not move in step.
     nac_path_location_verification: str = "/location-verification/v1/verify"
     nac_path_location_retrieval: str = "/location-retrieval/v0/retrieve"
-    # CAMARA Device Swap. Confirm the path against the Nokia portal before
-    # relying on it in a live run: an unverified path fails safe (UNAVAILABLE)
-    # but silently costs you the signal.
-    nac_path_device_swap: str = "/device-swap/v0/check"
+    # CAMARA Device Swap, as Nokia actually mounts it.
+    #
+    # Not the CAMARA standard path. Nokia exposes this capability through a
+    # passthrough route with the segment repeated — confirmed from the portal's
+    # own code snippet after the standard path returned 404 on the deployed
+    # system. Nothing about it was guessable.
+    nac_path_device_swap: str = "/passthrough/camara/v1/device-swap/device-swap/v1/check"
+
+    # Lookback window in hours. CAMARA defaults to 240; the question the policy
+    # is really asking is "did the binding change around this job", so a
+    # narrower window is defensible once the service window is known.
+    nac_device_swap_max_age_hours: int = 240
     nac_path_device_status: str = "/device-status/v0/connectivity"
 
     # Roaming exists twice: the older Device Status v0.5.1 operation and the

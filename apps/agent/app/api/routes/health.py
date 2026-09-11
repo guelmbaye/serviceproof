@@ -28,6 +28,24 @@ async def health() -> dict:
             "provider": "Nokia Network as Code",
         },
         "tools": [spec["name"] for spec in registry.specs()],
+
+        # The paths actually in use, not the ones in the source.
+        #
+        # Every capability path is overridable from the environment, which is
+        # the right design — a wrong path should cost a config change, not a
+        # release. It also means a corrected default silently loses to a stale
+        # value in a deployed .env, and the only symptom is a 404 that looks
+        # identical to an unsubscribed capability.
+        #
+        # One curl now answers "which path is this container calling", instead
+        # of a redeploy-and-see cycle.
+        "capability_paths": {
+            "location_verification": settings.nac_path_location_verification,
+            "device_swap": settings.nac_path_device_swap,
+            "device_status": settings.nac_path_device_status,
+            "device_reachability": settings.nac_path_device_reachability,
+        },
+        "base_url": settings.nac_base_url,
     }
 
 

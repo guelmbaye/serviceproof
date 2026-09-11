@@ -56,3 +56,29 @@ def test_a_malformed_bundle_is_rejected_before_any_network_call():
     response = client.post("/agent/verify", headers=AUTH, json={"claim": {}})
 
     assert response.status_code == 422
+
+
+def test_health_exposes_the_paths_actually_in_use():
+    """The diagnostic that ends a class of round-trip.
+
+    Every capability path is overridable from the environment, so a corrected
+    default loses silently to a stale value in a deployed .env — and the only
+    symptom is a 404 indistinguishable from an unsubscribed capability. Twice
+    now that has cost a redeploy to discover.
+    """
+    body = TestClient(app).get("/health").json()
+
+    paths = body["capability_paths"]
+
+    assert set(paths) == {
+        "location_verification",
+        "device_swap",
+        "device_status",
+        "device_reachability",
+    }
+
+    # Nokia's passthrough mounting, not the CAMARA standard path.
+    assert paths["device_swap"].startswith("/passthrough/camara/")
+    assert "device-swap/device-swap" in paths["device_swap"]
+
+    assert body["base_url"].startswith("https://")

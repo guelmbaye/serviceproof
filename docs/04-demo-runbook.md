@@ -2,6 +2,29 @@
 
 
 
+## When a capability returns 404
+
+Check what the container is actually calling before changing any code:
+
+```bash
+curl -s https://ai.serviceproof.vylantic.com/health | jq .capability_paths
+```
+
+Every path is overridable from the environment, which is the right design — a wrong path
+should cost a config change, not a release. It also means a **corrected default loses
+silently to a stale value in a deployed `.env`**, and the symptom is a 404 that looks exactly
+like an unsubscribed capability.
+
+That has now cost two redeploys. If the path shown by `/health` is not the one in
+`apps/agent/app/config.py`, the environment is overriding it: remove the line from
+`infra/production/.env` so the code default applies, or correct it there.
+
+Nokia's Device Swap path, for reference:
+
+```
+/passthrough/camara/v1/device-swap/device-swap/v1/check
+```
+
 ## The hero phrase
 
 > **SAME SERVICE CLAIM. SAME POLICY. DIFFERENT NETWORK EVIDENCE.**

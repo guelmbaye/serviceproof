@@ -247,3 +247,73 @@ async def test_http_failures_are_classified_by_what_they_mean(
 
     assert response.ok is False
     assert response.error_kind == expected
+
+
+# ── Device Swap: the wire contract Nokia actually exposes ────────────────
+
+
+async def test_device_swap_uses_nokias_passthrough_path_and_flat_body(live_settings):
+    """Two things here were unguessable, and both cost a deployment.
+
+    Nokia does not mount Device Swap at the CAMARA standard path. It sits
+    behind a passthrough route with the segment repeated, and it takes the
+    identifier flat rather than inside CAMARA's `device` envelope. Fixing only
+    the path would have turned a 404 into a 400 and looked like a second
+    capability failure.
+    """
+    seen = {}
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        seen["path"] = request.url.path
+        seen["body"] = json.loads(request.content)
+        seen["headers"] = dict(request.headers)
+        return httpx.Response(200, json={"swapped": True})
+
+    client = httpx.AsyncClient(
+        base_url=live_settings.nac_base_url, transport=httpx.MockTransport(capture)
+    )
+    nac = NacClient(live_settings, client=client)
+    try:
+        response = await nac.device_swap(DEVICE)
+    finally:
+        await client.aclose()
+
+    assert seen["path"] == "/passthrough/camara/v1/device-swap/device-swap/v1/check"
+
+    # Flat, not {"device": {...}}.
+    assert "device" not in seen["body"]
+    assert seen["body"]["phoneNumber"] == DEVICE["phoneNumber"]
+    assert isinstance(seen["body"]["maxAge"], int)
+
+    # Same auth as every other capability.
+    assert seen["headers"]["x-rapidapi-key"] == live_settings.nac_rapidapi_key
+    assert seen["headers"]["x-rapidapi-host"] == live_settings.nac_rapidapi_host
+
+    assert response.ok is True
+    assert response.payload["swapped"] is True
+
+
+async def test_the_lookback_window_is_configurable(live_settings):
+    """maxAge is the question "changed when?", so it belongs in config."""
+    from app.config import Settings
+
+    settings = Settings(
+        nac_rapidapi_key="X", nac_device_swap_max_age_hours=72
+    )
+
+    seen = {}
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"swapped": False})
+
+    client = httpx.AsyncClient(
+        base_url=settings.nac_base_url, transport=httpx.MockTransport(capture)
+    )
+    nac = NacClient(settings, client=client)
+    try:
+        await nac.device_swap(DEVICE)
+    finally:
+        await client.aclose()
+
+    assert seen["body"]["maxAge"] == 72
