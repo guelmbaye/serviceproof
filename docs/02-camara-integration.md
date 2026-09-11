@@ -51,6 +51,31 @@ recorded as `STALE`, not as evidence against the claim.
 | `NOT_CONNECTED`, out of window | `STALE` | 0.40 |
 | any transport/auth failure | `UNAVAILABLE` | — |
 
+## Receiving pushed events, without letting them become evidence
+
+The operator can push CAMARA CloudEvents to us. Receiving them is easy; receiving them
+without undermining the product's central claim takes two rules.
+
+**The endpoint is guarded by an unguessable URL.** Nokia signs nothing — the CloudEvent
+carries `id`, `source`, `type`, `specversion`, `time` and `data`, and no signature. An open
+endpoint that stores "network events" would let anyone who finds the URL write records. So
+the sink is `/api/v1/webhooks/geofencing/<token>`, the token comes from
+`WEBHOOK_GEOFENCING_TOKEN` with no default, and a wrong or absent token returns **404 rather
+than 401** — a 401 confirms the route exists and invites guessing.
+
+**What arrives is never evidence.** It lands in `network_events`, a separate table.
+No verification reads it, no decision derives from it. Evidence is something ServiceProof
+asked for over an authenticated channel and normalised through a tool it controls; this
+arrives unsolicited and unsigned. Keeping the two apart means the worst a leaked token buys
+is a cluttered screen rather than a changed verdict.
+
+The screen says all of this in the interface rather than only here, because a viewer who
+sees CloudEvents inside the product would otherwise reasonably assume they feed the decision
+path.
+
+Unrecognised event types return **204**, not an error: an operator retrying a delivery we
+chose not to store helps nobody.
+
 ## Device Swap, and why it is the escalation that matters
 
 When location is contested, the obvious next call is Device Status — and it is nearly

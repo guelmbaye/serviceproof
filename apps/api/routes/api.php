@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\GeofencingWebhookController;
 use App\Http\Controllers\Api\V1\AuditController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ClaimController;
@@ -27,6 +28,15 @@ use Illuminate\Support\Facades\Route;
 | Nothing else is permitted. No client ever reaches the agent runtime or a
 | network API directly, and no CAMARA credential exists outside the backend.
 */
+
+/*
+ * The operator pushes here. Outside every auth middleware by necessity —
+ * Nokia holds no bearer token — and guarded instead by an unguessable path
+ * segment. What it writes is never evidence and no decision reads it, so the
+ * blast radius of a leaked token is a noisy screen.
+ */
+Route::post('v1/webhooks/geofencing/{token}', GeofencingWebhookController::class)
+    ->name('webhooks.geofencing');
 
 Route::prefix('v1')->group(function () {
 
@@ -90,6 +100,18 @@ Route::prefix('v1')->group(function () {
         Route::get('devices', [DeviceController::class, 'index'])->name('devices.index');
         Route::post('devices', [DeviceController::class, 'store'])->name('devices.store');
         Route::patch('devices/{device}', [DeviceController::class, 'update'])->name('devices.update');
+
+        // Read-only. These are observations, not evidence, and the screen
+        // that shows them says so.
+        Route::get('network-events', function () {
+            return response()->json([
+                'data' => \App\Domain\Network\Models\NetworkEvent::query()
+                    ->orderByDesc('received_at')
+                    ->limit(50)
+                    ->get()
+                    ->map->toArray(),
+            ]);
+        })->name('network-events.index');
 
         Route::get('audit', [AuditController::class, 'index'])->name('audit.index');
 

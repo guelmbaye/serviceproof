@@ -9,6 +9,7 @@ const LINKS: { href: string; label: string; short: string; countKey?: "reviews" 
   { href: "/work-orders", label: "Work orders", short: "Orders" },
   { href: "/reviews", label: "Review queue", short: "Reviews", countKey: "reviews" },
   { href: "/policies", label: "Policies", short: "Policies" },
+  { href: "/network-events", label: "Network events", short: "Events" },
   { href: "/audit", label: "Audit log", short: "Audit" },
 ];
 

@@ -113,6 +113,16 @@ return [
      * actually needs. Widening it is a product decision with a consent
      * dimension, which is why it is configuration rather than a constant.
      */
+    /*
+     * The operator posts CloudEvents to a URL containing this token. Generate
+     * one per deployment (`openssl rand -hex 24`) and put it in the sink URL
+     * you register with Nokia. There is no default: an empty token makes the
+     * route return 404 for everyone, which is the right failure.
+     */
+    'webhooks' => [
+        'geofencing_token' => env('WEBHOOK_GEOFENCING_TOKEN'),
+    ],
+
     'entitlement' => [
         'default_capabilities' => [
             'LOCATION_VERIFICATION',
