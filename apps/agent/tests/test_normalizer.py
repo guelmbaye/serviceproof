@@ -6,6 +6,7 @@ from app.camara.client import NacResponse
 from app.camara.normalizer import (
     _parse_dt,
     device_reachability,
+    device_swap,
     device_status,
     location_verification,
     unavailable,
@@ -428,3 +429,43 @@ def test_no_evidence_summary_leaks_python_syntax():
         summary = item.summary or ""
         for token in ("[", "]", "{", "}", "'"):
             assert token not in summary, f"{token!r} in {summary!r}"
+
+
+# ── device swap: continuity, not accusation ──────────────────────────────
+
+
+def test_a_recent_swap_conflicts_without_accusing_anyone():
+    """The wording matters more here than anywhere else in the product.
+
+    People replace broken handsets. A swap is never evidence that a technician
+    cheated — it says the binding supporting this claim is not continuous,
+    which is a reason for a person to look, not a conclusion about a person.
+    """
+    item = device_swap(
+        ok_response("Device Swap", {"swapped": True}), "CAMARA", 900
+    )
+
+    assert item.status == "CONFLICTING"
+    assert "binding" in (item.summary or "")
+
+    summary = (item.summary or "").lower()
+    for word in ("fraud", "cheat", "lying", "suspicious", "deliberate"):
+        assert word not in summary, f'"{word}" has no place in this summary'
+
+
+def test_no_swap_supports_the_binding():
+    item = device_swap(
+        ok_response("Device Swap", {"swapped": False}), "CAMARA", 900
+    )
+
+    assert item.status == "SUPPORTED"
+    assert item.normalized["swapped"] is False
+
+
+def test_an_unreadable_swap_answer_names_what_it_received():
+    item = device_swap(
+        ok_response("Device Swap", {"status": "UNKNOWN"}), "CAMARA", 900
+    )
+
+    assert item.status == "UNAVAILABLE"
+    assert "status" in (item.failure_reason or "")

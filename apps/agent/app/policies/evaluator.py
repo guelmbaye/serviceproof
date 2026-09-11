@@ -70,12 +70,12 @@ def decide(policy: PolicyIn, evidence: list[EvidenceOut], assessment: Assessment
     elif assessment.conflicting:
         state = "DISPUTED"
         rationale = (
-            f"{assessment.conflicting} signal(s) materially conflict with the claim after "
-            "evidence reconciliation. Automatic verification is not permitted."
+            "Network evidence materially conflicts with automatic assurance "
+            f"requirements ({assessment.conflicting} conflicting signal(s))."
         )
     elif not assessment.missing_required:
         state = "VERIFIED"
-        rationale = f"All evidence required by policy {policy.key} is supported."
+        rationale = "Available network evidence sufficiently supports this claim under policy."
     elif policy.allow_partial and assessment.supported:
         state = "PARTIAL"
         rationale = (

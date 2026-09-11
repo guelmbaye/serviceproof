@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 EvidenceTypeStr = Literal[
     "LOCATION_VERIFICATION",
+    "DEVICE_SWAP",
     "DEVICE_STATUS",
     "DEVICE_REACHABILITY",
     "DEVICE_ROAMING_STATUS",
@@ -87,12 +88,34 @@ class EntitlementIn(BaseModel):
 
     status: str = "UNKNOWN"
     reference: str | None = None
+    purpose: str | None = None
     granted_at: datetime | None = None
     expires_at: datetime | None = None
+
+    # Which capabilities this entitlement covers. An empty list means the
+    # binding was granted without naming any, which is not the same as
+    # granting all of them — see permits_capability.
+    allowed_capabilities: list[str] = Field(default_factory=list)
 
     @property
     def permits_network_query(self) -> bool:
         return self.status.upper() == "ACTIVE"
+
+    def permits_capability(self, evidence_type: str) -> bool:
+        """Per-capability permission, not a blanket one.
+
+        An entitlement to ask where a device is does not extend to asking
+        whether its SIM changed. Enforcing that distinction is the difference
+        between a consent model and a checkbox, and it costs one comparison.
+
+        An empty list is read as "nothing named, nothing permitted" rather than
+        "unspecified, so allow" — the permissive reading is how scopes quietly
+        become meaningless.
+        """
+        return (
+            self.permits_network_query
+            and evidence_type in self.allowed_capabilities
+        )
 
 
 class DeviceIn(BaseModel):
@@ -208,6 +231,15 @@ class PlannerInfo(BaseModel):
     model: str | None = None
 
 
+StopReasonStr = Literal[
+    "EVIDENCE_SUFFICIENT",          # the policy was met; nothing more was worth spending
+    "MATERIAL_CONFLICT_CONFIRMED",  # a conflict stood after corroboration
+    "BUDGET_EXHAUSTED",             # the ceiling was reached before an answer
+    "NO_CAPABILITY_AVAILABLE",      # no permitted tool remained
+    "ENTITLEMENT_REFUSED",          # the run never reached the network
+]
+
+
 class VerifyResponse(BaseModel):
     status: Literal["COMPLETED", "FAILED"]
     agent_version: str
@@ -218,6 +250,15 @@ class VerifyResponse(BaseModel):
     assessment: AssessmentOut | None = None
     decision: DecisionOut | None = None
     tool_calls_used: int = 0
+
+    # Why the loop stopped, as a value rather than a sentence.
+    #
+    # The rationale explains the decision to a person; this explains the
+    # agent's behaviour to a machine — and to a judge comparing two runs, an
+    # objective label beats a paragraph. Run A stops EVIDENCE_SUFFICIENT with
+    # budget left; Run B stops MATERIAL_CONFLICT_CONFIRMED, also with budget
+    # left. Neither is BUDGET_EXHAUSTED, and that is the whole point.
+    stop_reason: StopReasonStr = "EVIDENCE_SUFFICIENT"
     duration_ms: int = 0
     escalated: bool = False
     used_demo_fallback: bool = False

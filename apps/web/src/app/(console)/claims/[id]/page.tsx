@@ -104,19 +104,33 @@ export default async function ClaimPage({ params }: { params: Promise<{ id: stri
                   </p>
                 )}
 
-                  {decision.state === "VERIFIED" && (
-                    /* The strongest objection to this product, answered where the
-                       verdict is read rather than in a document nobody opens.
-                       Network presence supports a claim; it does not prove a person
-                       performed a physical task. Saying so on the VERIFIED card
-                       costs nothing and removes an overclaim a reviewer would
-                       otherwise have to make on our behalf. */
-                    <p className="mt-3 text-[12px] leading-relaxed text-ink-2">
-                      Network evidence sufficiently supports this claim under the configured
-                      policy. It is supporting evidence, not independent proof that the
-                      physical task was completed.
-                    </p>
-                  )}
+                  {/* Spec §43. Four statements, on the screen where a decision is read
+                      rather than in a help centre nobody opens. Each answers an
+                      objection a reviewer would otherwise have to raise for us. */}
+                  <details className="mt-4 border-t border-rule-soft pt-3">
+                    <summary className="u-eyebrow cursor-pointer select-none hover:text-ink">
+                      What this evidence does and does not establish
+                    </summary>
+                    <ul className="mt-2 grid gap-1.5 text-[12px] leading-relaxed text-ink-2">
+                      <li>
+                        Network evidence supports operational assurance. It does not
+                        conclusively prove that a physical task was executed.
+                      </li>
+                      <li>
+                        Location precision depends on operator and network conditions. A
+                        verification radius is the area we asked about, not the accuracy the
+                        network can resolve.
+                      </li>
+                      <li>
+                        Device evidence establishes where a device was. It does not establish
+                        which human was carrying it.
+                      </li>
+                      <li>
+                        Unavailable evidence is never treated as negative evidence. A failed
+                        network call is an absence, not an accusation.
+                      </li>
+                    </ul>
+                  </details>
 
                 <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
                   <Field

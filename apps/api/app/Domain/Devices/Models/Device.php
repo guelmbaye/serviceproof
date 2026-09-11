@@ -77,8 +77,19 @@ class Device extends Model
         return [
             'status' => $this->status === 'ACTIVE' ? 'ACTIVE' : (string) $this->status,
             'reference' => "BIND-{$this->reference}",
+            'purpose' => 'FIELD_SERVICE_ASSURANCE',
             'granted_at' => $this->created_at?->toIso8601String(),
             'expires_at' => null,
+
+            // Named capabilities, not a blanket permission. The agent refuses
+            // any tool whose evidence type is absent from this list, before
+            // the planner can even see it — so permission to ask where a
+            // device is never silently extends to asking whether its SIM
+            // changed.
+            'allowed_capabilities' => config(
+                'serviceproof.entitlement.default_capabilities',
+                ['LOCATION_VERIFICATION', 'DEVICE_SWAP']
+            ),
         ];
     }
 }

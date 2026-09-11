@@ -197,6 +197,20 @@ class NacClient:
             self.settings.nac_path_location_verification, body, "Location Verification"
         )
 
+    async def device_swap(self, device: dict) -> NacResponse:
+        """CAMARA Device Swap: has the device behind this subscription changed?
+
+        The path is configurable because Nokia's mounting of this capability is
+        not something to guess at — a wrong path returns 404, which this system
+        correctly reports as UNAVAILABLE rather than as evidence against
+        anyone, but a demo built on it would show nothing.
+        """
+        return await self._post(
+            self.settings.nac_path_device_swap,
+            {"device": device},
+            api="Device Swap",
+        )
+
     async def device_status(self, device: dict[str, Any]) -> NacResponse:
         """Device Status — connectivity of the device on the network."""
         return await self._post(

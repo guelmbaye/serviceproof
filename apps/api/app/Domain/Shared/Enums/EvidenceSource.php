@@ -16,7 +16,7 @@ enum EvidenceSource: string
     {
         return match ($this) {
             self::CAMARA => 'Live network evidence',
-            self::DEMO_FALLBACK => 'ServiceProof demo fallback · simulated',
+            self::DEMO_FALLBACK => 'DEMO_FALLBACK',
         };
     }
 }

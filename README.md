@@ -196,6 +196,9 @@ The tests that matter most:
 - `test_planner_guardrails.py` — invented, forbidden and repeated tool calls are refused
 - `TenantIsolationTest` — a cross-tenant id returns 404, not 403
 - `EvidenceIntegrityTest` — evidence throws on update and on delete
+- `apps/agent/tool/contract_check.py` — every field the agent's schema expects is
+  produced somewhere in Laravel. Written after shipping an entitlement gate before
+  the field that feeds it, which refused every verification on the deployed system
 - `apps/api/tool/closure_check.py` — no closure reads an outer variable it did
   not capture, which `php -l` cannot see and which shipped a broken run once
 - `ReferenceGeneratorTest` — references order numerically past WO-9999, and two

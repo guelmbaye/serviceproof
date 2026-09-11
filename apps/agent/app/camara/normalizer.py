@@ -342,6 +342,57 @@ def location_verification(
     )
 
 
+def device_swap(
+    response: NacResponse,
+    source: str,
+    freshness_seconds: int,
+) -> EvidenceOut:
+    """Device continuity, worded as a question rather than an accusation.
+
+    CAMARA returns a boolean `swapped`. A swap is not misconduct — people
+    replace broken handsets — so the summary says the binding changed and
+    stops there. Whether that matters is the policy layer's call, and whether
+    it means anything about a person is a reviewer's.
+    """
+    payload = response.payload
+    swapped = payload.get("swapped")
+
+    if not isinstance(swapped, bool):
+        if not payload:
+            return unavailable("DEVICE_SWAP", response, source)
+        return unreadable(
+            "DEVICE_SWAP",
+            response,
+            source,
+            f"swapped={swapped if swapped is not None else 'absent'} "
+            f"(fields returned: {', '.join(sorted(payload)) or 'none'})",
+        )
+
+    if swapped:
+        # CONFLICTING against a claim that rests on the identifier still
+        # mapping to the same device. Not "the worker cheated".
+        status, reliability = "CONFLICTING", 0.55
+        summary = (
+            "The device behind this subscription changed recently, so the binding "
+            "supporting this claim is not continuous."
+        )
+    else:
+        status, reliability = "SUPPORTED", 0.7
+        summary = "No recent device change: the subscription binding is continuous."
+
+    return _base(
+        "DEVICE_SWAP",
+        response,
+        source,
+        status,
+        summary,
+        {"swapped": swapped},
+        _parse_dt(payload.get("latestSwapDate")) or _now(),
+        reliability,
+        freshness_seconds,
+    )
+
+
 def device_status(
     response: NacResponse, source: str, freshness_seconds: int, contemporaneous: bool
 ) -> EvidenceOut:

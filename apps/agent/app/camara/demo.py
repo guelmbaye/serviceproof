@@ -91,6 +91,20 @@ class DemoNetwork:
             },
         )
 
+    def device_swap(self, identifier: str, scenario: str | None = None) -> NacResponse:
+        """Mirrors the documented simulator behaviour on the two control numbers.
+
+        Nokia documents +99999991000 as the device-swap scenario and
+        +99999991001 as the no-swap one — the same split as location, which is
+        what makes the two demonstration runs coherent rather than coincidental.
+        """
+        if scenario == "UNVERIFIED":
+            return self._failure("Device Swap", "Simulated API unavailable.", "HTTP")
+
+        swapped = identifier.strip().endswith("1000")
+
+        return self._success("Device Swap", {"swapped": swapped})
+
     def device_status(self, identifier: str, scenario: str) -> NacResponse:
         if scenario == "UNVERIFIED":
             return self._failure("Device Status", "Simulated API unavailable.", "HTTP")

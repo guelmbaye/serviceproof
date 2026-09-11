@@ -299,6 +299,7 @@ class EvidenceOrchestrator:
             assessment=assessment,
             decision=decision,
             tool_calls_used=calls,
+            stop_reason=self._stop_reason(assessment, calls, budget.max_tool_calls),
             duration_ms=duration_ms,
             escalated=escalated,
             used_demo_fallback=ctx.used_demo_fallback,
@@ -368,16 +369,54 @@ class EvidenceOrchestrator:
             duration_ms=int((time.perf_counter() - started) * 1000),
             escalated=False,
             used_demo_fallback=False,
+            stop_reason="ENTITLEMENT_REFUSED",
         )
 
     # ── helpers ──────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _stop_reason(assessment, calls: int, ceiling: int) -> str:
+        """Why the loop stopped, derived from what happened.
+
+        Order matters. A run that hit the ceiling *and* had a standing conflict
+        stopped because of the conflict — the ceiling is incidental. Reporting
+        BUDGET_EXHAUSTED there would describe the arithmetic rather than the
+        reasoning, which is exactly the impression this field exists to correct.
+        """
+        if assessment.sufficient:
+            return "EVIDENCE_SUFFICIENT"
+
+        if assessment.conflicting:
+            return "MATERIAL_CONFLICT_CONFIRMED"
+
+        if calls >= ceiling:
+            return "BUDGET_EXHAUSTED"
+
+        return "NO_CAPABILITY_AVAILABLE"
+
     def _allowed_tools(self, payload: VerifyRequest) -> list[str]:
         """Intersection of what the deployment enables, what the policy
-        permits, and what actually exists. Nothing else is ever callable."""
+        permits, what the entitlement covers, and what actually exists.
+        Nothing else is ever callable.
+
+        The entitlement is the narrowest of the four and the only one that
+        represents a permission rather than a configuration. An entitlement to
+        ask where a device is does not extend to asking whether its SIM
+        changed, and the allow-list is where that distinction is enforced —
+        before the planner ever sees the tool, so a model cannot request it.
+        """
         requested = payload.tools or payload.policy.allowed_tools
         available = registry.available_tools(requested or None)
-        return list(available.keys())
+
+        entitlement = payload.device.entitlement if payload.device else None
+
+        if entitlement is None or not entitlement.allowed_capabilities:
+            return list(available.keys())
+
+        return [
+            name for name, tool in available.items()
+            if entitlement.permits_capability(tool.evidence_type)
+        ]
 
     def _plan_context(self, payload: VerifyRequest, allowed: list[str]) -> dict:
         return {

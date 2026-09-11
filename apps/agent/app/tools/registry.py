@@ -9,12 +9,18 @@ from __future__ import annotations
 
 from app.tools.base import Tool
 from app.tools.device_status import DeviceStatusTool
+from app.tools.device_swap import DeviceSwapTool
 from app.tools.location import VerifyLocationTool
 from app.tools.reachability import ReachabilityTool
 
 _ALL: dict[str, Tool] = {
     tool.name: tool
-    for tool in (VerifyLocationTool(), DeviceStatusTool(), ReachabilityTool())
+    for tool in (
+        VerifyLocationTool(),
+        DeviceSwapTool(),
+        DeviceStatusTool(),
+        ReachabilityTool(),
+    )
 }
 
 

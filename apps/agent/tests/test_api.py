@@ -21,7 +21,12 @@ def test_health_reports_the_planner_and_camara_mode():
     body = client.get("/health").json()
 
     assert body["status"] == "ok"
-    assert set(body["tools"]) == {"verify_location", "get_device_status", "check_reachability"}
+    assert set(body["tools"]) == {
+        "verify_location",
+        "check_device_swap",
+        "get_device_status",
+        "check_reachability",
+    }
     assert body["camara"]["provider"] == "Nokia Network as Code"
 
 

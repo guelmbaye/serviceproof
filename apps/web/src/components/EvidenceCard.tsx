@@ -46,6 +46,10 @@ export function EvidenceCard({ evidence }: { evidence: Evidence }) {
 
       <dl className="mt-3 grid grid-cols-2 items-start gap-x-4 gap-y-2.5 border-t border-rule-soft pt-3 sm:grid-cols-4">
         <Fact label="API" value={p.api ?? "—"} />
+        {/* Spec §30: name the standard, not just the endpoint. On a CAMARA
+            hackathon the word is the point — it says this is an
+            interoperable capability rather than one vendor's API. */}
+        <Fact label="Standard" value="CAMARA" />
         <Fact label="Provider" value={p.provider ?? "—"} />
         <Fact label="Latency" value={ms(p.latency_ms)} />
         <Fact

@@ -50,6 +50,30 @@ recorded as `STALE`, not as evidence against the claim.
 | `NOT_CONNECTED`, in window | `CONFLICTING` | 0.70 |
 | `NOT_CONNECTED`, out of window | `STALE` | 0.40 |
 | any transport/auth failure | `UNAVAILABLE` | — |
+
+## Device Swap, and why it is the escalation that matters
+
+When location is contested, the obvious next call is Device Status — and it is nearly
+useless. "Was the handset attached to the network" is true of almost every handset and
+answers nothing about the claim.
+
+Device Swap questions something narrower and directly relevant: whether the identifier we
+queried still maps to the same physical device. That is the assumption the whole claim rests
+on, so it is the assumption worth testing when the primary signal conflicts.
+
+The wording is load-bearing. A swap is **never** evidence that a technician cheated — people
+replace broken phones. The evidence says the binding supporting this claim is not
+continuous, and stops there. Whether that matters is the policy layer's call; whether it
+means anything about a person is a reviewer's. A test asserts the summary contains none of
+*fraud*, *cheat*, *lying*, *suspicious* or *deliberate*.
+
+The escalation order lives in the policy, not in the planner, because it is an operational
+judgment rather than an algorithm: `['DEVICE_SWAP', 'DEVICE_STATUS', 'DEVICE_REACHABILITY']`.
+
+> **The endpoint path is unverified.** `NAC_PATH_DEVICE_SWAP` defaults to the CAMARA standard
+> `/device-swap/v0/check`. Confirm it against the Nokia portal before a live demonstration:
+> a wrong path returns 404, which this system correctly records as UNAVAILABLE rather than as
+> evidence against anyone — but the signal is lost and the run is weaker for it.
 | a 200 we cannot interpret | `UNAVAILABLE`, reason names the fields received | — |
 
 Status values are matched by shape rather than against a fixed list. CAMARA specifies

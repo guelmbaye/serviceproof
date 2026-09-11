@@ -133,6 +133,15 @@ It is deliberately thin. Full consent management, per-jurisdiction lawful basis 
 revocation workflows are scoped and not built, and the documentation says so rather than
 implying a compliance story the code does not deliver.
 
+## Why not just use GPS
+
+GPS may remain part of enterprise evidence, and nothing here argues for removing it. What
+CAMARA gives ServiceProof is an **independent operator-derived evidence channel** — a signal
+the party being paid does not control.
+
+That is the whole distinction, and it is why no build time is spent integrating GPS: adding
+a second self-reported source would not change what the product can say.
+
 ## What the evidence does not prove
 
 The product's strongest objection is that a device inside a geofence is not a person doing

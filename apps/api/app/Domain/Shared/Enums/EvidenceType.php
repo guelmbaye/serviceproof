@@ -5,6 +5,7 @@ namespace App\Domain\Shared\Enums;
 enum EvidenceType: string
 {
     case LOCATION_VERIFICATION = 'LOCATION_VERIFICATION';
+    case DEVICE_SWAP = 'DEVICE_SWAP';
     case DEVICE_STATUS = 'DEVICE_STATUS';
     case DEVICE_REACHABILITY = 'DEVICE_REACHABILITY';
     case DEVICE_ROAMING_STATUS = 'DEVICE_ROAMING_STATUS';
@@ -15,6 +16,7 @@ enum EvidenceType: string
     {
         return match ($this) {
             self::LOCATION_VERIFICATION => 'verify_location',
+            self::DEVICE_SWAP => 'check_device_swap',
             self::DEVICE_STATUS => 'get_device_status',
             self::DEVICE_REACHABILITY => 'check_reachability',
             self::DEVICE_ROAMING_STATUS => 'get_roaming_status',

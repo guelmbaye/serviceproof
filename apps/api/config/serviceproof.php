@@ -31,7 +31,17 @@ return [
             'description' => 'Routine interventions. Location consistency is normally sufficient.',
             'assurance_level' => 'STANDARD',
             'required_evidence' => ['LOCATION_VERIFICATION'],
-            'optional_evidence' => ['DEVICE_STATUS', 'DEVICE_REACHABILITY'],
+            // Device Swap first, deliberately.
+            //
+            // When location is contested, "was the handset on the network" is
+            // true of almost every handset and answers nothing. "Has the device
+            // behind this subscription changed recently" bears directly on the
+            // assumption the claim rests on: that this identifier still maps to
+            // this worker's device.
+            //
+            // The escalation ladder is policy, not planner logic, so the order
+            // lives here where an operations team can reason about it.
+            'optional_evidence' => ['DEVICE_SWAP', 'DEVICE_STATUS', 'DEVICE_REACHABILITY'],
             // Three, not two.
             //
             // Location alone satisfies this policy, so a routine claim still
@@ -96,8 +106,23 @@ return [
     | agent as tools. Anything not listed here is never offered, whatever the
     | agent asks for.
     */
+    /*
+     * What a field-service entitlement covers by default.
+     *
+     * Deliberately narrow: the two capabilities the demonstration policy
+     * actually needs. Widening it is a product decision with a consent
+     * dimension, which is why it is configuration rather than a constant.
+     */
+    'entitlement' => [
+        'default_capabilities' => [
+            'LOCATION_VERIFICATION',
+            'DEVICE_SWAP',
+        ],
+    ],
+
     'enabled_tools' => [
         'verify_location',
+        'check_device_swap',
         'get_device_status',
         'check_reachability',
     ],

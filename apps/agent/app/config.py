@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     # they will not move in step.
     nac_path_location_verification: str = "/location-verification/v1/verify"
     nac_path_location_retrieval: str = "/location-retrieval/v0/retrieve"
+    # CAMARA Device Swap. Confirm the path against the Nokia portal before
+    # relying on it in a live run: an unverified path fails safe (UNAVAILABLE)
+    # but silently costs you the signal.
+    nac_path_device_swap: str = "/device-swap/v0/check"
     nac_path_device_status: str = "/device-status/v0/connectivity"
 
     # Roaming exists twice: the older Device Status v0.5.1 operation and the

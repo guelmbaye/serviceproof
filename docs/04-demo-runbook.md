@@ -1,6 +1,17 @@
 # Demo runbook
 
 
+
+## The hero phrase
+
+> **SAME SERVICE CLAIM. SAME POLICY. DIFFERENT NETWORK EVIDENCE.**
+>
+> Different agent behaviour. Different business outcome.
+
+Not *"same claim"*. The two runs are two different work orders on two different devices, and
+a judge could fairly read "same claim" as the identical transaction — which would be a claim
+we cannot support. "Same service claim, same policy" is both stronger and exactly true.
+
 ## Before every recording: clear the config cache
 
 ```bash

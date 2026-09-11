@@ -242,3 +242,147 @@ async def test_the_refusal_never_reaches_the_network(settings):
     assert result.escalated is False
     assert result.evidence_plan.minimum == ["LOCATION_VERIFICATION"]
     assert "entitlement check" in result.evidence_plan.rationale
+
+
+async def test_the_entitlement_laravel_actually_sends_is_accepted(settings):
+    """Regression: the gate shipped before the field that feeds it.
+
+    The agent enforced an entitlement that the product core never populated, so
+    every verification on the deployed system refused with zero calls. This
+    parses the exact device descriptor Laravel now sends and asserts the run
+    proceeds.
+    """
+    from app.schemas import DeviceIn
+
+    device = DeviceIn(
+        reference="DEV-001",
+        identifier_type="PHONE_NUMBER",
+        identifier_key="phoneNumber",
+        identifier="+99999991001",
+        is_simulator=True,
+        entitlement={
+            "status": "ACTIVE",
+            "reference": "BIND-DEV-001",
+            "granted_at": "2026-09-10T19:00:00+00:00",
+            "expires_at": None,
+        },
+    )
+
+    assert device.entitlement.permits_network_query is True
+
+    request = build_request()
+    request.device = device
+
+    result = await EvidenceOrchestrator(settings).run(request)
+
+    assert result.tool_calls_used >= 1, "An active entitlement must not block the run."
+    assert "ENTITLEMENT_VERIFIED" in [e.event_type for e in result.trace]
+
+
+async def test_a_retired_device_is_refused(settings):
+    """Laravel sends the device status verbatim when it is not ACTIVE."""
+    from app.schemas import DeviceIn
+
+    request = build_request()
+    request.device = DeviceIn(
+        reference="DEV-009",
+        identifier="+99999991001",
+        entitlement={"status": "RETIRED", "reference": "BIND-DEV-009"},
+    )
+
+    result = await EvidenceOrchestrator(settings).run(request)
+
+    assert result.tool_calls_used == 0
+    assert result.decision.state == "UNVERIFIED"
+
+
+async def test_a_contested_location_asks_about_binding_continuity(settings):
+    """The escalation that actually bears on the conflict.
+
+    Device Status answers "was the handset on the network", which is true of
+    almost every handset and settles nothing. Device Swap questions whether the
+    identifier still maps to this worker's device — the assumption the whole
+    claim rests on.
+    """
+    from tests.conftest import FAR_LAT, FAR_LNG
+
+    request = build_request(
+        latitude=FAR_LAT, longitude=FAR_LNG, identifier="+99999991000", max_tool_calls=3
+    )
+    request.policy.optional_evidence = ["DEVICE_SWAP", "DEVICE_STATUS", "DEVICE_REACHABILITY"]
+    request.policy.allowed_tools = [
+        "verify_location", "check_device_swap", "get_device_status", "check_reachability",
+    ]
+    request.tools = request.policy.allowed_tools
+
+    result = await EvidenceOrchestrator(settings).run(request)
+
+    types = [item.type for item in result.evidence]
+
+    assert types[0] == "LOCATION_VERIFICATION"
+    assert types[1] == "DEVICE_SWAP", "Binding continuity comes before network attachment."
+    assert result.decision.state == "DISPUTED"
+    assert result.tool_calls_used == 2, "Two calls, then stop: nothing further would help."
+
+
+async def test_an_entitlement_names_capabilities_rather_than_granting_all(settings):
+    """Permission to ask where a device is does not extend to its SIM.
+
+    The allow-list is where that holds, and it is computed before the planner
+    runs — so a model cannot request a capability the binding does not cover,
+    rather than being refused after asking.
+    """
+    from app.schemas import EntitlementIn
+    from tests.conftest import FAR_LAT, FAR_LNG
+
+    request = build_request(
+        latitude=FAR_LAT, longitude=FAR_LNG, identifier="+99999991000", max_tool_calls=3,
+        entitlement=EntitlementIn(
+            status="ACTIVE",
+            reference="BIND-002",
+            allowed_capabilities=["LOCATION_VERIFICATION"],
+        ),
+    )
+    request.policy.optional_evidence = ["DEVICE_SWAP", "DEVICE_STATUS"]
+    request.policy.allowed_tools = ["verify_location", "check_device_swap", "get_device_status"]
+    request.tools = request.policy.allowed_tools
+
+    result = await EvidenceOrchestrator(settings).run(request)
+
+    assert [item.type for item in result.evidence] == ["LOCATION_VERIFICATION"]
+    assert result.tool_calls_used == 1
+
+
+async def test_an_empty_capability_list_is_not_read_as_permission_for_everything(settings):
+    """The permissive reading is how scopes quietly become meaningless."""
+    from app.schemas import EntitlementIn
+
+    entitlement = EntitlementIn(status="ACTIVE", allowed_capabilities=[])
+
+    assert entitlement.permits_network_query is True
+    assert entitlement.permits_capability("LOCATION_VERIFICATION") is False
+
+
+async def test_the_demo_entitlement_covers_exactly_the_hero_path(settings):
+    """Spec §9: LOCATION_VERIFICATION and DEVICE_SWAP, nothing else."""
+    from app.schemas import EntitlementIn
+    from tests.conftest import FAR_LAT, FAR_LNG
+
+    request = build_request(
+        latitude=FAR_LAT, longitude=FAR_LNG, identifier="+99999991000", max_tool_calls=3,
+        entitlement=EntitlementIn(
+            status="ACTIVE",
+            purpose="FIELD_SERVICE_ASSURANCE",
+            allowed_capabilities=["LOCATION_VERIFICATION", "DEVICE_SWAP"],
+        ),
+    )
+    request.policy.optional_evidence = ["DEVICE_SWAP", "DEVICE_STATUS", "DEVICE_REACHABILITY"]
+    request.policy.allowed_tools = [
+        "verify_location", "check_device_swap", "get_device_status", "check_reachability",
+    ]
+    request.tools = request.policy.allowed_tools
+
+    result = await EvidenceOrchestrator(settings).run(request)
+
+    assert [item.type for item in result.evidence] == ["LOCATION_VERIFICATION", "DEVICE_SWAP"]
+    assert result.decision.state == "DISPUTED"

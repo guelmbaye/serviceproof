@@ -112,8 +112,11 @@ class Evidence extends Model
             return $this->source->label();
         }
 
+        // Spec §34 names the enum rather than a prose label, deliberately:
+        // three modes a judge can tell apart at a glance, in machine type,
+        // with no room to read "simulator" as "live".
         return ($this->normalized['operator_test_device'] ?? false)
-            ? 'Nokia NaC simulator'
-            : 'Live network';
+            ? 'NOKIA_SIMULATOR'
+            : 'LIVE';
     }
 }
