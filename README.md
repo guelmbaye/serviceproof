@@ -196,6 +196,10 @@ The tests that matter most:
 - `test_planner_guardrails.py` — invented, forbidden and repeated tool calls are refused
 - `TenantIsolationTest` — a cross-tenant id returns 404, not 403
 - `EvidenceIntegrityTest` — evidence throws on update and on delete
+- `apps/api/tool/match_check.py` — every `match ($this)` on an enum handles every
+  case. PHP throws UnhandledMatchError at runtime, never at build, so adding a case
+  and forgetting one of three match statements in the same file broke one run on the
+  deployed system while the other kept working
 - `apps/agent/tool/contract_check.py` — every field the agent's schema expects is
   produced somewhere in Laravel. Written after shipping an entitlement gate before
   the field that feeds it, which refused every verification on the deployed system

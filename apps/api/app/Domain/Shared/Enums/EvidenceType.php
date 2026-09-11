@@ -28,6 +28,7 @@ enum EvidenceType: string
     {
         return match ($this) {
             self::LOCATION_VERIFICATION => 'Location Verification',
+            self::DEVICE_SWAP => 'Device Swap',
             self::DEVICE_STATUS => 'Device Status',
             self::DEVICE_REACHABILITY => 'Device Reachability Status',
             self::DEVICE_ROAMING_STATUS => 'Device Roaming Status',
@@ -40,6 +41,7 @@ enum EvidenceType: string
     {
         return match ($this) {
             self::LOCATION_VERIFICATION => 'Was the device consistent with the expected service site?',
+            self::DEVICE_SWAP => 'Has the device behind this subscription changed recently?',
             self::DEVICE_STATUS => 'Was the device active on the network?',
             self::DEVICE_REACHABILITY => 'Could the device be reached?',
             self::DEVICE_ROAMING_STATUS => 'Was the device roaming outside the expected country?',

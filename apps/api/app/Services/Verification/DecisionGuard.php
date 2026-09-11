@@ -50,12 +50,16 @@ class DecisionGuard
         } elseif ($conflicting->isNotEmpty()) {
             $derived = DecisionState::DISPUTED;
             $reason = sprintf(
-                '%d evidence item(s) materially conflict with the claim; automatic verification is not permitted.',
+                'Network evidence materially conflicts with automatic assurance requirements (%d conflicting signal(s)).',
                 $conflicting->count()
             );
         } elseif ($missingRequired->isEmpty()) {
             $derived = DecisionState::VERIFIED;
-            $reason = 'All evidence required by policy '.($policy?->key ?? 'default').' is supported.';
+            // Spec §32. The guard re-derives the verdict independently of the
+            // agent, so it writes its own rationale — and that is the one the
+            // decision card shows. Updating the agent's wording alone left the
+            // old sentence on screen, which is how the two came to disagree.
+            $reason = 'Available network evidence sufficiently supports this claim under policy.';
         } elseif ($policy?->allow_partial && $supported->isNotEmpty()) {
             $derived = DecisionState::PARTIAL;
             $reason = 'Supporting evidence exists but the policy requirements are incomplete: '
