@@ -40,6 +40,20 @@ fresh: ## Drop + rebuild the database, then seed
 	$(COMPOSE) exec -T api php artisan config:clear
 	$(COMPOSE) exec -T api php artisan migrate:fresh --seed --force
 
+geofence-sink: ## Register a Geofencing subscription pointing at this deployment
+	./infra/scripts/register-geofence-sink.sh
+
+# Reseed, then re-subscribe. Both halves, because one without the other leaves
+# the Network events screen empty.
+#
+# migrate:fresh drops every table including network_events, and Nokia's
+# initialEvent only fires when a subscription is created — an existing one
+# stays silent. So a reseed always costs a new subscription, and forgetting
+# that means discovering an empty screen at 2:30 of a recording.
+demo-reset: ## Reseed AND re-register the geofence sink — use this before recording
+	$(MAKE) fresh
+	./infra/scripts/register-geofence-sink.sh
+
 seed: ## Seed demo organisations, users, work orders
 	$(COMPOSE) exec -T api php artisan config:clear
 	$(COMPOSE) exec -T api php artisan db:seed --force

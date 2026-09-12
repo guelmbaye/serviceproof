@@ -25,6 +25,35 @@ Nokia's Device Swap path, for reference:
 /passthrough/camara/v1/device-swap/device-swap/v1/check
 ```
 
+## Before you record
+
+```bash
+make demo-reset
+```
+
+Reseed **and** re-register the geofence subscription, in one command, because one without
+the other leaves the Network events screen empty.
+
+That pairing is not obvious and it caught me out. `migrate:fresh` drops every table,
+`network_events` included, and Nokia's `initialEvent` only fires when a subscription is
+*created* — an existing one stays silent afterwards. So a reseed always costs a new
+subscription. Discovering that at 2:30 of a recording is the kind of thing that costs an
+afternoon.
+
+The script reads `NAC_RAPIDAPI_KEY` and `WEBHOOK_GEOFENCING_TOKEN` from
+`infra/production/.env`, so there is nothing to type. Explicit variables still win if you
+want to run it against something else:
+
+```bash
+NAC_KEY=... WEBHOOK_TOKEN=... ./infra/scripts/register-geofence-sink.sh
+```
+
+It checks our own endpoint before involving Nokia and stops if the token is wrong — a
+subscription delivering into a 404 looks exactly like a simulator that does not emit.
+
+`WEBHOOK_GEOFENCING_TOKEN` has no default. Generate one with `openssl rand -hex 24`, put it
+in the deployment `.env`, and restart the api container so it is read.
+
 ## The hero phrase
 
 > **SAME SERVICE CLAIM. SAME POLICY. DIFFERENT NETWORK EVIDENCE.**

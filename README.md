@@ -147,6 +147,7 @@ docs/              architecture, CAMARA, API, runbook, security
 | [Security and trust](docs/05-security-and-trust.md) | prompt injection, data minimisation, what's missing |
 | [Operations console](docs/06-operations-console.md) | the web frontend, and why UNVERIFIED is grey |
 | [Field app](apps/mobile/README.md) | the technician's app, the offline outbox, and why it has no GPS |
+| [Demo video script](docs/07-demo-video-script.md) | the three-minute cut, beat by beat, with what must be on screen |
 | [Deployment](docs/guide-deploy-serviceproof.md) | DigitalOcean, shared Nginx proxy, production images (in French) |
 
 ---
