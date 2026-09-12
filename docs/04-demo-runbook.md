@@ -70,6 +70,26 @@ recreates. That distinction has already cost an afternoon here.
 tagging is exactly right and the product is behaving as designed — but because a judge
 watching a CAMARA hackathon demo needs to see a live call.
 
+## git pull does not rebuild anything
+
+The production images copy the application code in at build time. A pull updates the files
+on the host; the containers keep running what was baked into them.
+
+| Changed | What is needed |
+|---|---|
+| `infra/scripts/*.sh`, `Makefile`, `docs/` | nothing — read from the host each time |
+| `infra/production/.env` | `spc up -d --force-recreate <service>` |
+| `apps/agent`, `apps/api`, `apps/web` | `spc up -d --build <service>` |
+
+This bites in a particular way: a script and the service it inspects come from different
+places, so a freshly pulled diagnostic can report on a container that predates it. That is
+what an empty key fingerprint means — the check knows about a field the running image does
+not have.
+
+```bash
+spc up -d --build agent api web
+```
+
 ## Before you record
 
 ```bash

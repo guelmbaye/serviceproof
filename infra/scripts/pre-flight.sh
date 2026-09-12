@@ -37,10 +37,17 @@ else
     live=$(field "live_credentials" "$health")
     finger=$(field "key_fingerprint" "$health")
 
-    if [ "$live" = "true" ]; then
+    if [ "$live" = "true" ] && [ -n "$finger" ]; then
         ok "Live credentials present · key $finger"
         echo "      Compare with .env:  grep NAC_RAPIDAPI_KEY infra/production/.env"
         echo "      If they differ:     spc up -d --force-recreate agent"
+    elif [ "$live" = "true" ]; then
+        # The field exists in the source but not in this running image. Saying
+        # "key " with nothing after it is worse than saying why.
+        ok "Live credentials present"
+        echo "      This container predates the key fingerprint, so it cannot be"
+        echo "      compared from outside. git pull does not rebuild an image:"
+        echo "      spc up -d --build agent"
     else
         bad "No Nokia key in the container" \
             "Every item will be tagged simulated. spc up -d --force-recreate agent"
@@ -88,14 +95,33 @@ done
 echo
 echo "── 4 · Network events has something to show ──"
 
-events=$(auth "$API/network-events")
-count=$(grep -o '"event_type"' <<< "$events" | wc -l | tr -d ' ')
+# Nokia delivers within seconds, not instantly, and this check usually runs
+# moments after a subscription was created. Looking once is a race written to
+# be lost — so wait, briefly, and say so rather than appearing to hang.
+count=0
+for attempt in 1 2 3 4 5 6; do
+    events=$(auth "$API/network-events")
+    count=$(grep -o '"event_type"' <<< "$events" | wc -l | tr -d ' ')
+
+    [ "$count" -gt 0 ] && break
+
+    if [ "$attempt" -eq 1 ]; then
+        printf '  … nothing yet; giving Nokia up to 30s to deliver'
+    else
+        printf '.'
+    fi
+    sleep 5
+done
+
+[ "$count" -eq 0 ] && echo
 
 if [ "$count" -gt 0 ]; then
     ok "$count event(s) received"
 else
-    bad "Nothing received" \
-        "The 2:30 beat would show an empty screen. bash infra/scripts/register-geofence-sink.sh"
+    bad "Nothing received after 30s" \
+        "The 2:30 beat would show an empty screen. Re-subscribe:
+      bash infra/scripts/register-geofence-sink.sh
+      then check the sink is reachable from outside, not just from the droplet."
 fi
 
 echo
