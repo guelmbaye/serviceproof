@@ -24,6 +24,20 @@ the two live runs. Target 2:50–2:56 on export, never 3:00.
 
 ## Before you record
 
+```bash
+make pre-flight
+```
+
+Six checks, each of which has already cost a take here: the agent holds a live Nokia key,
+both demonstration claims are still unverified so they run on camera, Network events has
+something to show, and the console answers. It prints **GO** or names the one thing to fix.
+
+Two things it cannot check, and both have cost a take too: a browser cleared of bookmarks,
+extra tabs and notifications; and the two claim windows arranged side by side **before** you
+start, for the 1:45 beat.
+
+
+
 Reseed and re-subscribe in one command: `make demo-reset`. Both halves matter — a reseed drops the received network events, and Nokia only delivers an initial event when a subscription is created. Leave both WO-1042
 and WO-1043 unverified — both runs happen live and each completes in under a second.
 

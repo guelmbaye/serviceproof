@@ -25,6 +25,18 @@ async def health() -> dict:
         "camara": {
             "mode": settings.camara_mode,
             "live_credentials": settings.has_live_credentials,
+
+            # The last six characters of the key this container is holding.
+            #
+            # Not the key. Enough to answer "is this the one I just put in
+            # .env?" without an exec into the container — a question that has
+            # already cost an afternoon, because `docker compose restart`
+            # keeps the old environment and only `up -d` recreates with the
+            # new one.
+            "key_fingerprint": (
+                f"…{settings.nac_rapidapi_key[-6:]}"
+                if settings.nac_rapidapi_key else None
+            ),
             "provider": "Nokia Network as Code",
         },
         "tools": [spec["name"] for spec in registry.specs()],

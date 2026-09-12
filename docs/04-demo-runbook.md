@@ -49,12 +49,22 @@ it authenticated. That pattern is what a **new RapidAPI application** looks like
 regenerating a key keeps its subscriptions, creating a new application starts with none.
 
 If everything returns 200 and the console still shows `DEMO_FALLBACK`, the container is
-holding an older key:
+holding an older key. Compare without an exec:
 
 ```bash
-spc exec agent printenv NAC_RAPIDAPI_KEY
-spc up -d agent
+curl -s https://ai.serviceproof.vylantic.com/health | jq .camara.key_fingerprint
+tail -c 7 <<< "$(grep '^NAC_RAPIDAPI_KEY=' infra/production/.env | cut -d= -f2-)"
 ```
+
+If they differ:
+
+```bash
+spc up -d agent        # recreates with the current .env
+```
+
+**Not `restart`.** `docker compose restart` keeps the same container and the same
+environment, so a rotated key is ignored and everything still falls back. Only `up -d`
+recreates. That distinction has already cost an afternoon here.
 
 **Do not record while items are tagged simulated.** Not because it is dishonest — the
 tagging is exactly right and the product is behaving as designed — but because a judge

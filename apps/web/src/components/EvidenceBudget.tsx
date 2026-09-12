@@ -3,8 +3,8 @@
  *
  * The agent's defining behaviour is not that it calls APIs — anything can call
  * an API. It is that it decides how many to call, and stops. A clean claim
- * costs one call; a contested one costs three, because the first answer
- * conflicted. Showing the budget as a number among other numbers hid that.
+ * costs one call; a contested one costs two, because the first answer
+ * conflicted and nothing further could settle it. Showing the budget as a number among other numbers hid that.
  *
  * It also has to survive being watched with the sound off: on a recorded demo,
  * "1 of 3" beside "3 of 3" is the proof, and it needs to be legible at a

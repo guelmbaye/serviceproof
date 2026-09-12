@@ -55,8 +55,9 @@ export default async function LoginPage() {
             <span className="text-ink">Verify with network evidence</span>.
           </p>
           <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
-            A routine claim costs one network call. A contested one costs three — not because
-            anyone wrote a branch for it, but because the first signal came back conflicting.
+            A routine claim costs one network call. A contested one costs two, and stops with
+              budget to spare — not because anyone wrote a branch for it, but because the
+              first signal conflicted and nothing further could settle it.
           </p>
         </div>
       </div>

@@ -46,6 +46,9 @@ fresh: ## Drop + rebuild the database, then seed
 # core.fileMode can be off, a Windows checkout drops it, and a manual copy
 # never had it. `make demo-reset` failing with "Permission denied" after a
 # clean deploy is a pointless way to lose ten minutes.
+pre-flight: ## Everything that must be true before you press record
+	bash infra/scripts/pre-flight.sh
+
 check-key: ## Which CAMARA capabilities does the configured key actually reach?
 	bash infra/scripts/check-nac-key.sh
 

@@ -82,3 +82,28 @@ def test_health_exposes_the_paths_actually_in_use():
     assert "device-swap/device-swap" in paths["device_swap"]
 
     assert body["base_url"].startswith("https://")
+
+
+def test_health_shows_which_key_the_container_holds():
+    """A fingerprint, not the key.
+
+    `docker compose restart` keeps the old environment; only `up -d` recreates
+    with the new one. That distinction cost an afternoon of a deployment where
+    the .env held a working key and the container held a rotated one, with no
+    way to see the difference short of an exec.
+
+    Six characters answer it from outside and reveal nothing useful.
+    """
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    body = TestClient(app).get("/health").json()
+
+    fingerprint = body["camara"]["key_fingerprint"]
+
+    if body["camara"]["live_credentials"]:
+        assert fingerprint is not None
+        assert fingerprint.startswith("…")
+        assert len(fingerprint) == 7, "Six characters and the ellipsis, no more."
+    else:
+        assert fingerprint is None
