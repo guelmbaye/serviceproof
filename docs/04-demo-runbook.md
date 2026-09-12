@@ -25,6 +25,41 @@ Nokia's Device Swap path, for reference:
 /passthrough/camara/v1/device-swap/device-swap/v1/check
 ```
 
+## When every evidence item says "simulated"
+
+The fallback did its job — but the demonstration is now showing that the sponsor integration
+is not live, which is the opposite of the argument.
+
+```bash
+make check-key
+```
+
+It calls each capability directly and reads what the gateway actually said, because the
+codes mean different things:
+
+| | |
+|---|---|
+| `403` | the application is not subscribed to that API |
+| `429` | subscribed, quota spent |
+| `401` | the key itself is wrong |
+| `404` | wrong path, nothing to do with the key |
+
+A mixed `403` / `429` across two capabilities means the key is valid: a 429 was counted, so
+it authenticated. That pattern is what a **new RapidAPI application** looks like —
+regenerating a key keeps its subscriptions, creating a new application starts with none.
+
+If everything returns 200 and the console still shows `DEMO_FALLBACK`, the container is
+holding an older key:
+
+```bash
+spc exec agent printenv NAC_RAPIDAPI_KEY
+spc up -d agent
+```
+
+**Do not record while items are tagged simulated.** Not because it is dishonest — the
+tagging is exactly right and the product is behaving as designed — but because a judge
+watching a CAMARA hackathon demo needs to see a live call.
+
 ## Before you record
 
 ```bash
