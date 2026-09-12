@@ -45,7 +45,7 @@ The script reads `NAC_RAPIDAPI_KEY` and `WEBHOOK_GEOFENCING_TOKEN` from
 want to run it against something else:
 
 ```bash
-NAC_KEY=... WEBHOOK_TOKEN=... ./infra/scripts/register-geofence-sink.sh
+NAC_KEY=... WEBHOOK_TOKEN=... bash infra/scripts/register-geofence-sink.sh
 ```
 
 It checks our own endpoint before involving Nokia and stops if the token is wrong — a

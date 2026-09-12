@@ -40,8 +40,14 @@ fresh: ## Drop + rebuild the database, then seed
 	$(COMPOSE) exec -T api php artisan config:clear
 	$(COMPOSE) exec -T api php artisan migrate:fresh --seed --force
 
+# Invoked through bash rather than executed directly.
+#
+# The executable bit does not reliably survive the trip to a server: git's
+# core.fileMode can be off, a Windows checkout drops it, and a manual copy
+# never had it. `make demo-reset` failing with "Permission denied" after a
+# clean deploy is a pointless way to lose ten minutes.
 geofence-sink: ## Register a Geofencing subscription pointing at this deployment
-	./infra/scripts/register-geofence-sink.sh
+	bash infra/scripts/register-geofence-sink.sh
 
 # Reseed, then re-subscribe. Both halves, because one without the other leaves
 # the Network events screen empty.
@@ -52,7 +58,7 @@ geofence-sink: ## Register a Geofencing subscription pointing at this deployment
 # that means discovering an empty screen at 2:30 of a recording.
 demo-reset: ## Reseed AND re-register the geofence sink — use this before recording
 	$(MAKE) fresh
-	./infra/scripts/register-geofence-sink.sh
+	bash infra/scripts/register-geofence-sink.sh
 
 seed: ## Seed demo organisations, users, work orders
 	$(COMPOSE) exec -T api php artisan config:clear
