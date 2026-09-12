@@ -92,7 +92,11 @@ curl -s -w '\n  HTTP %{http_code}\n' -X POST "$GEO" \
             \"subscriptionMaxEvents\": 10,
             \"subscriptionExpireTime\": \"2026-12-31T23:59:59.000Z\"
         }
-    }" | sed 's/^/  /'
+    }" | sed "s|$WEBHOOK_TOKEN|<token>|g; s/^/  /"
+
+# Nokia echoes the whole subscription back, sink URL included, and the sink URL
+# is the token. Printing it verbatim puts the secret into every paste of this
+# output — which is exactly how it reached a shared file the first time.
 
 cat <<'EOF'
 
